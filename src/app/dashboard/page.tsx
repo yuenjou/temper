@@ -12,12 +12,37 @@ type PR = {
   exercises: { name: string } | null
 }
 
+function calculateStreak(finishedAts: string[]): number {
+  if (finishedAts.length === 0) return 0
+
+  const dates = new Set(finishedAts.map(d => d.slice(0, 10)))
+
+  const now = new Date()
+  const todayStr = now.toISOString().slice(0, 10)
+  const yesterday = new Date(now)
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+  const yesterdayStr = yesterday.toISOString().slice(0, 10)
+
+  const startStr = dates.has(todayStr) ? todayStr : (dates.has(yesterdayStr) ? yesterdayStr : null)
+  if (!startStr) return 0
+
+  let streak = 0
+  const current = new Date(startStr + 'T00:00:00Z')
+  while (true) {
+    const dateStr = current.toISOString().slice(0, 10)
+    if (!dates.has(dateStr)) break
+    streak++
+    current.setUTCDate(current.getUTCDate() - 1)
+  }
+  return streak
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: workouts }, { data: prs }] = await Promise.all([
+  const [{ data: workouts }, { data: prs }, { data: finishedWorkouts }] = await Promise.all([
     supabase
       .from('workouts')
       .select('id, name, started_at, sets(id)')
@@ -29,19 +54,39 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .order('achieved_at', { ascending: false })
       .limit(20),
+    supabase
+      .from('workouts')
+      .select('finished_at')
+      .eq('user_id', user.id)
+      .not('finished_at', 'is', null)
+      .order('finished_at', { ascending: false }),
   ])
+
+  const streak = calculateStreak((finishedWorkouts ?? []).map(w => w.finished_at as string))
 
   return (
     <div className="min-h-screen bg-black text-white p-8 max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <Link
-          href="/workout/new"
-          className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded font-medium text-sm"
-        >
-          Start Workout
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/measurements"
+            className="border border-zinc-600 hover:border-zinc-400 px-4 py-2 rounded font-medium text-sm text-zinc-300 hover:text-white"
+          >
+            Measurements
+          </Link>
+          <Link
+            href="/workout/new"
+            className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded font-medium text-sm"
+          >
+            Start Workout
+          </Link>
+        </div>
       </div>
+
+      {streak > 0 && (
+        <p className="text-lg font-semibold mb-6">🔥 {streak} day streak</p>
+      )}
 
       {(!workouts || workouts.length === 0) ? (
         <p className="text-zinc-400">No workouts yet. Start one!</p>
