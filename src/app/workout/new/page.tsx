@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import NavBar from '@/components/NavBar'
+import ExerciseIllustration from '@/components/ExerciseIllustration'
+import ForgeIcon from '@/components/ForgeIcon'
 import {
   createWorkout,
   finishWorkout,
@@ -17,13 +19,31 @@ type WorkoutSet = { id: string; reps: number; weight: number; weight_unit: strin
 type Exercise = { id: string; name: string; category: string; muscle_group: string }
 type ExerciseEntry = Exercise & { sets: WorkoutSet[] }
 
+function illustrationFor(name: string): string {
+  const n = name.toLowerCase()
+  if (n.includes('bench') || (n.includes('press') && n.includes('chest'))) return 'bench-press'
+  if (n.includes('squat')) return 'squat'
+  if (n.includes('deadlift')) return 'deadlift'
+  if (n.includes('row')) return 'row'
+  if (n.includes('press') || n.includes('overhead') || n.includes('ohp')) return 'press'
+  if (n.includes('curl')) return 'curl'
+  return 'bench-press'
+}
+
+function formatTime(s: number): string {
+  const m = Math.floor(s / 60)
+  const sec = s % 60
+  return `${m}:${String(sec).padStart(2, '0')}`
+}
+
 export default function NewWorkoutPage() {
   const router = useRouter()
   const [workoutId, setWorkoutId] = useState<string | null>(null)
   const [entries, setEntries] = useState<ExerciseEntry[]>([])
   const [inputs, setInputs] = useState<Record<string, { reps: string; weight: string }>>({})
-
   const [prSetIds, setPrSetIds] = useState<Record<string, boolean>>({})
+  const [activeExIdx, setActiveExIdx] = useState(0)
+  const [elapsed, setElapsed] = useState(0)
 
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -38,6 +58,11 @@ export default function NewWorkoutPage() {
   }, [])
 
   useEffect(() => {
+    const id = setInterval(() => setElapsed(s => s + 1), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
     if (searchQuery.length < 2) { setSearchResults([]); return }
     const t = setTimeout(() => { searchExercises(searchQuery).then(setSearchResults) }, 300)
     return () => clearTimeout(t)
@@ -45,6 +70,7 @@ export default function NewWorkoutPage() {
 
   function addExercise(ex: Exercise) {
     if (entries.some(e => e.id === ex.id)) { closeSearch(); return }
+    setActiveExIdx(entries.length)
     setEntries(prev => [...prev, { ...ex, sets: [] }])
     setInputs(prev => ({ ...prev, [ex.id]: { reps: '', weight: '' } }))
     closeSearch()
@@ -96,174 +122,404 @@ export default function NewWorkoutPage() {
     router.push('/dashboard')
   }
 
+  const clampedIdx = Math.min(activeExIdx, Math.max(0, entries.length - 1))
+  const activeEntry = entries[clampedIdx] ?? null
+  const totalSets = entries.reduce((a, e) => a + e.sets.length, 0)
+
+  const inputStyle: React.CSSProperties = {
+    flex: 1, padding: '11px 14px',
+    background: 'var(--surface-2)', borderRadius: 'var(--r-md)',
+    border: 'none', color: 'var(--text-primary)',
+    fontSize: 16, fontWeight: 600, outline: 'none',
+    fontFamily: 'inherit',
+  }
+
   return (
     <>
-    <NavBar />
-    <div className="min-h-screen bg-black text-white p-6 max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">New Workout</h1>
-        <button
-          onClick={handleFinish}
-          disabled={!workoutId}
-          className="bg-green-600 hover:bg-green-500 disabled:opacity-40 px-4 py-2 rounded font-medium"
-        >
-          Finish Workout
-        </button>
-      </div>
+      <NavBar />
+      <div style={{ background: 'var(--bg)', minHeight: '100vh', paddingBottom: 120 }}>
+        <div className="forge-main">
 
-      {!workoutId && <p className="text-zinc-400 text-sm mb-4">Starting workout...</p>}
+          {/* Header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 16px 12px',
+            borderBottom: '0.5px solid var(--hairline)',
+          }}>
+            <button className="forge-icon-btn" onClick={handleFinish} disabled={!workoutId} aria-label="Finish">
+              <ForgeIcon name="check" size={20} />
+            </button>
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              {workoutId
+                ? <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>● Live</div>
+                : <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em' }}>Starting…</div>
+              }
+              <div style={{ fontSize: 15, fontWeight: 600, marginTop: 2 }}>New Workout</div>
+            </div>
+            <button className="forge-icon-btn" onClick={() => setShowSearch(true)} aria-label="Add exercise">
+              <ForgeIcon name="plus" size={20} />
+            </button>
+          </div>
 
-      <div className="space-y-4">
-        {entries.map(entry => (
-          <div key={entry.id} className="border border-zinc-700 rounded-lg p-4">
-            <h2 className="font-semibold mb-1">{entry.name}</h2>
-            {entry.category && (
-              <p className="text-zinc-400 text-xs mb-3">{entry.category}{entry.muscle_group ? ` · ${entry.muscle_group}` : ''}</p>
-            )}
-
-            {entry.sets.length > 0 && (
-              <table className="w-full text-sm mb-3">
-                <thead>
-                  <tr className="text-zinc-500 text-left">
-                    <th className="pb-1 w-8">#</th>
-                    <th className="pb-1">Reps</th>
-                    <th className="pb-1">Weight</th>
-                    <th className="pb-1"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entry.sets.map((s, i) => (
-                    <tr key={s.id} className="border-t border-zinc-800">
-                      <td className="py-1 text-zinc-500">{i + 1}</td>
-                      <td className="py-1">{s.reps}</td>
-                      <td className="py-1">
-                        {s.weight} {s.weight_unit}
-                        {prSetIds[s.id] && <span className="ml-1.5 text-yellow-400 text-xs font-medium">🏆 PR!</span>}
-                      </td>
-                      <td className="py-1 text-right">
-                        <button
-                          onClick={() => handleDeleteSet(entry.id, s.id)}
-                          className="text-red-500 hover:text-red-400 text-xs"
-                        >
-                          ✕
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            <div className="flex gap-2">
-              <input
-                type="number"
-                placeholder="Reps"
-                value={inputs[entry.id]?.reps ?? ''}
-                onChange={e => setInput(entry.id, 'reps', e.target.value)}
-                className="w-20 bg-zinc-800 rounded px-2 py-1.5 text-sm"
-              />
-              <input
-                type="number"
-                placeholder="kg"
-                value={inputs[entry.id]?.weight ?? ''}
-                onChange={e => setInput(entry.id, 'weight', e.target.value)}
-                className="w-20 bg-zinc-800 rounded px-2 py-1.5 text-sm"
-              />
-              <button
-                onClick={() => handleAddSet(entry.id)}
-                className="bg-zinc-700 hover:bg-zinc-600 px-3 py-1.5 rounded text-sm"
-              >
-                + Add Set
-              </button>
+          {/* Timer + sets */}
+          <div style={{ padding: '20px 24px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div>
+                <p className="forge-eyebrow" style={{ marginBottom: 2 }}>Elapsed</p>
+                <p style={{ fontSize: 48, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1, margin: 0 }}>
+                  {formatTime(elapsed)}
+                </p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p className="forge-eyebrow" style={{ marginBottom: 2 }}>Sets logged</p>
+                <p style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>
+                  {totalSets}
+                </p>
+              </div>
             </div>
           </div>
-        ))}
+
+          {/* Exercise chips */}
+          {entries.length > 0 && (
+            <div
+              className="no-scrollbar"
+              style={{ display: 'flex', gap: 8, padding: '16px 16px 0', overflowX: 'auto' }}
+            >
+              {entries.map((e, i) => (
+                <button
+                  key={e.id}
+                  onClick={() => setActiveExIdx(i)}
+                  style={{
+                    flexShrink: 0, padding: '8px 16px', borderRadius: 'var(--r-pill)',
+                    background: i === clampedIdx ? 'var(--accent)' : 'var(--surface-2)',
+                    color: i === clampedIdx ? '#fff' : 'var(--text-primary)',
+                    fontSize: 13, fontWeight: 600,
+                    transition: 'all 0.15s ease',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  {e.sets.length > 0 && i !== clampedIdx && (
+                    <ForgeIcon name="check" size={12} color="var(--green)" strokeWidth={2.5} />
+                  )}
+                  {e.name.split(' ').slice(-2).join(' ')}
+                  {e.sets.length > 0 && (
+                    <span style={{ opacity: 0.65, fontSize: 11 }}>{e.sets.length}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Active exercise card or empty state */}
+          <div style={{ padding: '16px 20px 0' }}>
+            {!activeEntry ? (
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                padding: '60px 24px', gap: 16,
+              }}>
+                <ForgeIcon name="dumbbell" size={52} color="var(--text-tertiary)" />
+                <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: 17, fontWeight: 500 }}>
+                  Add your first exercise
+                </p>
+                <p style={{ color: 'var(--text-tertiary)', margin: 0, fontSize: 14 }}>
+                  Tap + to search exercises
+                </p>
+              </div>
+            ) : (
+              <div className="forge-card" style={{ padding: 0, overflow: 'hidden' }}>
+
+                {/* Exercise hero */}
+                <div style={{
+                  padding: '20px 20px',
+                  display: 'flex', gap: 16, alignItems: 'center',
+                  borderBottom: '0.5px solid var(--hairline)',
+                }}>
+                  <div style={{
+                    width: 76, height: 76, borderRadius: 16, flexShrink: 0,
+                    background: 'var(--surface-2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <ExerciseIllustration name={illustrationFor(activeEntry.name)} size={58} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {(activeEntry.muscle_group || activeEntry.category) && (
+                      <p className="forge-eyebrow" style={{ marginBottom: 4 }}>
+                        {activeEntry.muscle_group || activeEntry.category}
+                      </p>
+                    )}
+                    <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, lineHeight: 1.2, letterSpacing: '-0.01em' }}>
+                      {activeEntry.name}
+                    </h2>
+                    {activeEntry.sets.length > 0 && (
+                      <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '4px 0 0', fontWeight: 500 }}>
+                        {activeEntry.sets.length} set{activeEntry.sets.length !== 1 ? 's' : ''} logged
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sets table */}
+                {activeEntry.sets.length > 0 && (
+                  <>
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: '36px 1fr 1fr 36px',
+                      gap: 8, padding: '10px 20px',
+                      borderBottom: '0.5px solid var(--hairline)',
+                      fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
+                      textTransform: 'uppercase', letterSpacing: '0.05em',
+                    }}>
+                      <span>#</span><span>Weight</span><span>Reps</span><span />
+                    </div>
+                    {activeEntry.sets.map((s, i) => (
+                      <div
+                        key={s.id}
+                        style={{
+                          display: 'grid', gridTemplateColumns: '36px 1fr 1fr 36px',
+                          gap: 8, padding: '12px 20px', alignItems: 'center',
+                          borderBottom: '0.5px solid var(--hairline)',
+                          background: prSetIds[s.id] ? 'rgba(255,214,10,0.05)' : undefined,
+                        }}
+                      >
+                        <div style={{
+                          width: 28, height: 28, borderRadius: '50%',
+                          background: 'var(--surface-2)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 13, fontWeight: 700,
+                        }}>
+                          {i + 1}
+                        </div>
+                        <span style={{ fontWeight: 600, fontSize: 15 }}>
+                          {s.weight}{' '}
+                          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 500 }}>{s.weight_unit}</span>
+                          {prSetIds[s.id] && (
+                            <span style={{ marginLeft: 6, fontSize: 11, color: '#ffd60a', fontWeight: 700 }}>PR</span>
+                          )}
+                        </span>
+                        <span style={{ fontWeight: 600, fontSize: 15 }}>
+                          {s.reps}{' '}
+                          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 500 }}>reps</span>
+                        </span>
+                        <button
+                          onClick={() => handleDeleteSet(activeEntry.id, s.id)}
+                          style={{
+                            width: 28, height: 28, borderRadius: '50%',
+                            background: 'var(--surface-2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: 'var(--text-tertiary)',
+                          }}
+                        >
+                          <ForgeIcon name="close" size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Input row */}
+                <div style={{ padding: '14px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="kg"
+                    value={inputs[activeEntry.id]?.weight ?? ''}
+                    onChange={e => setInput(activeEntry.id, 'weight', e.target.value)}
+                    style={inputStyle}
+                  />
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="reps"
+                    value={inputs[activeEntry.id]?.reps ?? ''}
+                    onChange={e => setInput(activeEntry.id, 'reps', e.target.value)}
+                    style={inputStyle}
+                  />
+                  <button
+                    onClick={() => handleAddSet(activeEntry.id)}
+                    style={{
+                      padding: '11px 20px', flexShrink: 0,
+                      background: 'var(--accent)', color: '#fff',
+                      borderRadius: 'var(--r-md)', fontWeight: 700, fontSize: 15,
+                      transition: 'background 0.15s ease',
+                    }}
+                  >
+                    Add
+                  </button>
+                </div>
+
+              </div>
+            )}
+          </div>
+
+        </div>
       </div>
 
-      <button
-        onClick={() => setShowSearch(true)}
-        className="mt-4 w-full border border-dashed border-zinc-600 hover:border-zinc-400 text-zinc-400 hover:text-white py-3 rounded-lg text-sm"
-      >
-        + Add Exercise
-      </button>
+      {/* Fixed bottom bar */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
+        background: 'rgba(28,28,30,0.92)',
+        backdropFilter: 'saturate(180%) blur(28px)',
+        WebkitBackdropFilter: 'saturate(180%) blur(28px)',
+        borderTop: '0.5px solid var(--hairline)',
+      }}>
+        <div className="forge-main" style={{ display: 'flex', gap: 10, padding: '12px 20px 28px' }}>
+          <button
+            onClick={() => setShowSearch(true)}
+            className="forge-btn-secondary"
+            style={{ flex: 1, fontSize: 15 }}
+          >
+            <ForgeIcon name="plus" size={18} />
+            Exercise
+          </button>
+          <button
+            onClick={handleFinish}
+            disabled={!workoutId}
+            className="forge-btn-primary"
+            style={{ flex: 2, opacity: workoutId ? 1 : 0.45 }}
+          >
+            Finish Workout
+          </button>
+        </div>
+      </div>
 
+      {/* Exercise search modal */}
       {showSearch && (
-        <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center p-4 z-50">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-md p-4">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="font-semibold">{showCustomForm ? 'New Exercise' : 'Add Exercise'}</h2>
-              <button onClick={closeSearch} className="text-zinc-400 hover:text-white">✕</button>
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 50,
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+            padding: '0 0 0',
+          }}
+          onClick={closeSearch}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 540,
+              background: 'var(--surface-1)',
+              borderRadius: '24px 24px 0 0',
+              padding: '20px 20px 40px',
+              border: '0.5px solid var(--hairline-strong)',
+              boxShadow: '0 -8px 40px rgba(0,0,0,0.5)',
+            }}
+          >
+            {/* Handle bar */}
+            <div style={{ width: 36, height: 4, background: 'var(--surface-3)', borderRadius: 2, margin: '0 auto 20px' }} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
+                {showCustomForm ? 'New Exercise' : 'Add Exercise'}
+              </h2>
+              <button className="forge-icon-btn" onClick={closeSearch}>
+                <ForgeIcon name="close" size={18} />
+              </button>
             </div>
 
             {!showCustomForm ? (
               <>
-                <input
-                  autoFocus
-                  type="text"
-                  placeholder="Search exercises (min 2 chars)"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-zinc-800 rounded px-3 py-2 text-sm mb-2"
-                />
-                <div className="max-h-64 overflow-y-auto space-y-0.5">
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)',
+                  marginBottom: 12,
+                }}>
+                  <ForgeIcon name="search" size={16} color="var(--text-tertiary)" />
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Search exercises…"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    style={{
+                      flex: 1, background: 'none', border: 'none', outline: 'none',
+                      color: 'var(--text-primary)', fontSize: 15, fontFamily: 'inherit',
+                    }}
+                  />
+                </div>
+                <div style={{ maxHeight: 280, overflowY: 'auto' }} className="no-scrollbar">
                   {searchResults.map(ex => (
                     <button
                       key={ex.id}
                       onClick={() => addExercise(ex)}
-                      className="w-full text-left px-3 py-2 hover:bg-zinc-800 rounded text-sm"
+                      style={{
+                        width: '100%', textAlign: 'left', padding: '12px 8px',
+                        borderBottom: '0.5px solid var(--hairline)',
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        borderRadius: 0,
+                      }}
                     >
-                      <span className="font-medium">{ex.name}</span>
-                      {ex.category && <span className="text-zinc-500 ml-2">{ex.category}</span>}
+                      <div style={{
+                        width: 40, height: 40, borderRadius: 10,
+                        background: 'var(--surface-2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <ExerciseIllustration name={illustrationFor(ex.name)} size={30} />
+                      </div>
+                      <div>
+                        <p style={{ fontWeight: 600, margin: 0, fontSize: 15 }}>{ex.name}</p>
+                        {ex.category && (
+                          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
+                            {ex.category}{ex.muscle_group ? ` · ${ex.muscle_group}` : ''}
+                          </p>
+                        )}
+                      </div>
                     </button>
                   ))}
                   {searchQuery.length >= 2 && searchResults.length === 0 && (
-                    <div className="text-center py-6">
-                      <p className="text-zinc-400 text-sm mb-3">No exercises found</p>
+                    <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+                      <p style={{ color: 'var(--text-secondary)', margin: '0 0 12px' }}>No exercises found</p>
                       <button
                         onClick={() => setShowCustomForm(true)}
-                        className="text-blue-400 hover:text-blue-300 text-sm underline"
+                        style={{ color: 'var(--accent)', fontSize: 14, fontWeight: 600 }}
                       >
                         Create &quot;{searchQuery}&quot; as custom
                       </button>
                     </div>
                   )}
+                  {searchQuery.length < 2 && (
+                    <p style={{ color: 'var(--text-tertiary)', fontSize: 14, textAlign: 'center', padding: '24px 0 8px' }}>
+                      Type at least 2 characters to search
+                    </p>
+                  )}
                 </div>
               </>
             ) : (
-              <div className="space-y-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <input
                   autoFocus
                   type="text"
                   placeholder="Exercise name *"
                   value={customName}
                   onChange={e => setCustomName(e.target.value)}
-                  className="w-full bg-zinc-800 rounded px-3 py-2 text-sm"
+                  style={{ padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)', border: 'none', color: 'var(--text-primary)', fontSize: 15, fontFamily: 'inherit', outline: 'none' }}
                 />
                 <input
                   type="text"
                   placeholder="Category (e.g. Strength)"
                   value={customCategory}
                   onChange={e => setCustomCategory(e.target.value)}
-                  className="w-full bg-zinc-800 rounded px-3 py-2 text-sm"
+                  style={{ padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)', border: 'none', color: 'var(--text-primary)', fontSize: 15, fontFamily: 'inherit', outline: 'none' }}
                 />
                 <input
                   type="text"
                   placeholder="Muscle group (e.g. Chest)"
                   value={customMuscleGroup}
                   onChange={e => setCustomMuscleGroup(e.target.value)}
-                  className="w-full bg-zinc-800 rounded px-3 py-2 text-sm"
+                  style={{ padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)', border: 'none', color: 'var(--text-primary)', fontSize: 15, fontFamily: 'inherit', outline: 'none' }}
                 />
-                <div className="flex gap-2 pt-1">
+                <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                   <button
                     onClick={() => setShowCustomForm(false)}
-                    className="flex-1 border border-zinc-600 py-2 rounded text-sm"
+                    className="forge-btn-secondary"
+                    style={{ flex: 1, fontSize: 15 }}
                   >
                     Back
                   </button>
                   <button
                     onClick={handleCreateCustom}
                     disabled={!customName.trim()}
-                    className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded text-sm font-medium"
+                    className="forge-btn-primary"
+                    style={{ flex: 2, opacity: customName.trim() ? 1 : 0.45 }}
                   >
                     Create &amp; Add
                   </button>
@@ -273,7 +529,6 @@ export default function NewWorkoutPage() {
           </div>
         </div>
       )}
-    </div>
     </>
   )
 }

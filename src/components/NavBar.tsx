@@ -15,13 +15,12 @@ export default function NavBar() {
   return (
     <nav style={{
       position: 'sticky', top: 0, zIndex: 10,
-      display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
       background: 'rgba(28,28,30,0.85)',
       backdropFilter: 'saturate(180%) blur(24px)',
       WebkitBackdropFilter: 'saturate(180%) blur(24px)',
       borderBottom: '0.5px solid var(--hairline)',
     }}>
-      <div style={{ display: 'contents', maxWidth: 440, margin: '0 auto' }}>
+      <div className="forge-main" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
         {TABS.map(({ href, label, icon, match }) => {
           const active = pathname === match || pathname.startsWith(match + '/')
           return (
