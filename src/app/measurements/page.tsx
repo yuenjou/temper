@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import MeasurementForm from './MeasurementForm'
 import NavBar from '@/components/NavBar'
 
@@ -44,64 +43,79 @@ export default async function MeasurementsPage() {
 
   return (
     <>
-    <NavBar />
-    <div className="min-h-screen bg-black text-white p-8 max-w-2xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Measurements</h1>
-        <Link href="/dashboard" className="text-zinc-400 hover:text-white text-sm">
-          ← Dashboard
-        </Link>
-      </div>
+      <NavBar />
+      <main style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 96, maxWidth: 440, margin: '0 auto' }}>
 
-      <MeasurementForm />
+        {/* Header */}
+        <section style={{ padding: '20px 24px 24px' }}>
+          <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0 }}>Measurements</h1>
+        </section>
 
-      {types.length === 0 ? (
-        <p className="text-zinc-400">No measurements yet. Log your first one above!</p>
-      ) : (
-        <div className="space-y-4">
-          {types.map(type => {
-            const entries = grouped[type]
-            const latest = entries[0]
-            const prior = entries.slice(1)
-            return (
-              <div key={type} className="border border-zinc-700 rounded-lg p-4">
-                <div className="flex justify-between items-baseline mb-1">
-                  <h2 className="font-semibold">{TYPE_LABELS[type] ?? type}</h2>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold">{latest.value}</span>
-                    <span className="text-zinc-400 ml-1 text-sm">{latest.unit}</span>
-                  </div>
-                </div>
-                <p className="text-zinc-500 text-xs mb-3">
-                  {new Date(latest.recorded_at).toLocaleDateString(undefined, {
-                    weekday: 'short', month: 'short', day: 'numeric',
-                  })}
-                </p>
-                {prior.length > 0 && (
-                  <details className="text-sm">
-                    <summary className="text-zinc-400 cursor-pointer hover:text-zinc-300 select-none">
-                      {prior.length} prior {prior.length === 1 ? 'entry' : 'entries'}
-                    </summary>
-                    <div className="mt-2 space-y-1 border-t border-zinc-800 pt-2">
-                      {prior.map(m => (
-                        <div key={m.id} className="flex justify-between text-zinc-400">
-                          <span>
-                            {new Date(m.recorded_at).toLocaleDateString(undefined, {
-                              month: 'short', day: 'numeric',
-                            })}
-                          </span>
-                          <span>{m.value} {m.unit}</span>
-                        </div>
-                      ))}
+        {/* Form */}
+        <section style={{ padding: '0 20px 20px' }}>
+          <MeasurementForm />
+        </section>
+
+        {/* History */}
+        <section style={{ padding: '0 20px 20px' }}>
+          {types.length === 0 ? (
+            <div style={{
+              background: 'var(--surface-1)', borderRadius: 'var(--r-lg)',
+              boxShadow: 'var(--shadow-card)', padding: '32px 20px', textAlign: 'center',
+            }}>
+              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>No measurements yet</p>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: 14, margin: '4px 0 0' }}>Log your first one above!</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {types.map(type => {
+                const entries = grouped[type]
+                const latest = entries[0]
+                const prior = entries.slice(1)
+                return (
+                  <div key={type} style={{
+                    background: 'var(--surface-1)', borderRadius: 'var(--r-lg)',
+                    boxShadow: 'var(--shadow-card)', padding: 20,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                      <h2 style={{ fontWeight: 600, fontSize: 16, margin: 0 }}>{TYPE_LABELS[type] ?? type}</h2>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: 28, fontWeight: 700 }}>{latest.value}</span>
+                        <span style={{ color: 'var(--text-tertiary)', marginLeft: 4, fontSize: 14 }}>{latest.unit}</span>
+                      </div>
                     </div>
-                  </details>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </div>
+                    <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '0 0 12px' }}>
+                      {new Date(latest.recorded_at).toLocaleDateString(undefined, {
+                        weekday: 'short', month: 'short', day: 'numeric',
+                      })}
+                    </p>
+                    {prior.length > 0 && (
+                      <details style={{ fontSize: 14 }}>
+                        <summary style={{ color: 'var(--text-tertiary)', cursor: 'pointer', userSelect: 'none', listStyle: 'none' }}>
+                          {prior.length} prior {prior.length === 1 ? 'entry' : 'entries'}
+                        </summary>
+                        <div style={{ marginTop: 10, borderTop: '0.5px solid var(--hairline)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {prior.map(m => (
+                            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                              <span>
+                                {new Date(m.recorded_at).toLocaleDateString(undefined, {
+                                  month: 'short', day: 'numeric',
+                                })}
+                              </span>
+                              <span>{m.value} {m.unit}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
+      </main>
     </>
   )
 }

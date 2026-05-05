@@ -17,6 +17,28 @@ function typeLabel(t: string) {
   return t.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
+const inputStyle: React.CSSProperties = {
+  background: 'var(--surface-2)',
+  border: '0.5px solid var(--hairline-strong)',
+  borderRadius: 'var(--r-md)',
+  padding: '10px 14px',
+  fontSize: 15,
+  color: 'var(--text-primary)',
+  width: '100%',
+  outline: 'none',
+  fontFamily: 'inherit',
+}
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 600,
+  color: 'var(--text-tertiary)',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.05em',
+  marginBottom: 6,
+  display: 'block',
+}
+
 export default function MeasurementForm() {
   const today = new Date().toISOString().split('T')[0]
   const [type, setType] = useState('bodyweight')
@@ -41,40 +63,48 @@ export default function MeasurementForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border border-zinc-700 rounded-lg p-4 mb-8 space-y-3">
-      <div className="flex flex-col gap-1">
-        <label className="text-sm text-zinc-400">Type</label>
+    <form onSubmit={handleSubmit} style={{
+      background: 'var(--surface-1)',
+      borderRadius: 'var(--r-lg)',
+      boxShadow: 'var(--shadow-card)',
+      padding: 20,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 16,
+    }}>
+      <div>
+        <label style={labelStyle}>Type</label>
         <select
           value={type}
           onChange={e => setType(e.target.value)}
-          className="bg-zinc-800 rounded px-3 py-2 text-sm"
+          style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}
         >
           {TYPES.map(t => (
             <option key={t} value={t}>{typeLabel(t)}</option>
           ))}
         </select>
       </div>
-      <div className="flex gap-3">
-        <div className="flex flex-col gap-1 flex-1">
-          <label className="text-sm text-zinc-400">Value ({unit})</label>
+      <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <label style={labelStyle}>Value ({unit})</label>
           <input
             type="number"
             step="0.1"
             value={value}
             onChange={e => setValue(e.target.value)}
-            placeholder={`e.g. 75.5`}
-            className="bg-zinc-800 rounded px-3 py-2 text-sm"
+            placeholder="e.g. 75.5"
+            style={inputStyle}
             required
           />
         </div>
-        <div className="flex flex-col gap-1 flex-1">
-          <label className="text-sm text-zinc-400">Date</label>
+        <div style={{ flex: 1 }}>
+          <label style={labelStyle}>Date</label>
           <input
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
             max={today}
-            className="bg-zinc-800 rounded px-3 py-2 text-sm"
+            style={inputStyle}
             required
           />
         </div>
@@ -82,7 +112,8 @@ export default function MeasurementForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-2 rounded text-sm font-medium"
+        className="forge-btn-primary"
+        style={{ opacity: submitting ? 0.5 : 1 }}
       >
         {submitting ? 'Logging...' : 'Log Measurement'}
       </button>
