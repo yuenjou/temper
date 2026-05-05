@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import NavBar from '@/components/NavBar'
 
 type PR = {
   id: string
@@ -65,6 +66,8 @@ export default async function DashboardPage() {
   const streak = calculateStreak((finishedWorkouts ?? []).map(w => w.finished_at as string))
 
   return (
+    <>
+    <NavBar />
     <div className="min-h-screen bg-black text-white p-8 max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Dashboard</h1>
@@ -139,5 +142,6 @@ export default async function DashboardPage() {
         </div>
       )}
     </div>
+    </>
   )
 }

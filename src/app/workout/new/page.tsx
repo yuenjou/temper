@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import NavBar from '@/components/NavBar'
 import {
   createWorkout,
   finishWorkout,
@@ -96,6 +97,8 @@ export default function NewWorkoutPage() {
   }
 
   return (
+    <>
+    <NavBar />
     <div className="min-h-screen bg-black text-white p-6 max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">New Workout</h1>
@@ -271,5 +274,6 @@ export default function NewWorkoutPage() {
         </div>
       )}
     </div>
+    </>
   )
 }

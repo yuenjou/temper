@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import MeasurementForm from './MeasurementForm'
+import NavBar from '@/components/NavBar'
 
 type Measurement = {
   id: string
@@ -31,6 +32,7 @@ export default async function MeasurementsPage() {
     .select('id, type, value, unit, recorded_at')
     .eq('user_id', user.id)
     .order('recorded_at', { ascending: false })
+    .order('created_at', { ascending: false })
 
   const grouped: Record<string, Measurement[]> = {}
   for (const m of (data ?? []) as Measurement[]) {
@@ -41,6 +43,8 @@ export default async function MeasurementsPage() {
   const types = TYPES_ORDER.filter(t => grouped[t])
 
   return (
+    <>
+    <NavBar />
     <div className="min-h-screen bg-black text-white p-8 max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">Measurements</h1>
@@ -98,5 +102,6 @@ export default async function MeasurementsPage() {
         </div>
       )}
     </div>
+    </>
   )
 }
