@@ -9,6 +9,7 @@ import {
   createCustomExercise,
   logSet,
   deleteSet,
+  checkNewPR,
 } from './actions'
 
 type WorkoutSet = { id: string; reps: number; weight: number; weight_unit: string }
@@ -20,6 +21,8 @@ export default function NewWorkoutPage() {
   const [workoutId, setWorkoutId] = useState<string | null>(null)
   const [entries, setEntries] = useState<ExerciseEntry[]>([])
   const [inputs, setInputs] = useState<Record<string, { reps: string; weight: string }>>({})
+
+  const [prSetIds, setPrSetIds] = useState<Record<string, boolean>>({})
 
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -67,6 +70,9 @@ export default function NewWorkoutPage() {
     const set = await logSet(workoutId, exerciseId, reps, weight)
     setEntries(prev => prev.map(e => e.id === exerciseId ? { ...e, sets: [...e.sets, set] } : e))
     setInputs(prev => ({ ...prev, [exerciseId]: { reps: '', weight: '' } }))
+    checkNewPR(exerciseId, reps).then(isPR => {
+      if (isPR) setPrSetIds(prev => ({ ...prev, [set.id]: true }))
+    })
   }
 
   async function handleDeleteSet(exerciseId: string, setId: string) {
@@ -127,7 +133,10 @@ export default function NewWorkoutPage() {
                     <tr key={s.id} className="border-t border-zinc-800">
                       <td className="py-1 text-zinc-500">{i + 1}</td>
                       <td className="py-1">{s.reps}</td>
-                      <td className="py-1">{s.weight} {s.weight_unit}</td>
+                      <td className="py-1">
+                        {s.weight} {s.weight_unit}
+                        {prSetIds[s.id] && <span className="ml-1.5 text-yellow-400 text-xs font-medium">🏆 PR!</span>}
+                      </td>
                       <td className="py-1 text-right">
                         <button
                           onClick={() => handleDeleteSet(entry.id, s.id)}

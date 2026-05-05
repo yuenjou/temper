@@ -84,6 +84,24 @@ export async function logSet(
   return data
 }
 
+export async function checkNewPR(exerciseId: string, reps: number): Promise<boolean> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+
+  const fiveSecondsAgo = new Date(Date.now() - 5000).toISOString()
+  const { data } = await supabase
+    .from('personal_records')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('exercise_id', exerciseId)
+    .eq('reps', reps)
+    .gte('achieved_at', fiveSecondsAgo)
+    .maybeSingle()
+
+  return !!data
+}
+
 export async function deleteSet(setId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
