@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -23,6 +24,7 @@ const DELETE_W = 80
 const FULL_DELETE = 200
 
 function WorkoutRow({ workout, onDelete }: { workout: Workout; onDelete: () => void }) {
+  const router = useRouter()
   const [offset, setOffset] = useState(0)
   const [dragging, setDragging] = useState(false)
   const [revealed, setRevealed] = useState(false)
@@ -31,6 +33,7 @@ function WorkoutRow({ workout, onDelete }: { workout: Workout; onDelete: () => v
   const startY = useRef(0)
   const baseOffset = useRef(0)
   const directionLocked = useRef<'h' | 'v' | null>(null)
+  const hasSwiped = useRef(false)
 
   useEffect(() => {
     if (removing) {
@@ -44,6 +47,7 @@ function WorkoutRow({ workout, onDelete }: { workout: Workout; onDelete: () => v
     startY.current = e.touches[0].clientY
     baseOffset.current = revealed ? -DELETE_W : 0
     directionLocked.current = null
+    hasSwiped.current = false
     setDragging(false)
   }
 
@@ -53,7 +57,10 @@ function WorkoutRow({ workout, onDelete }: { workout: Workout; onDelete: () => v
     if (!directionLocked.current) {
       if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
         directionLocked.current = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v'
-        if (directionLocked.current === 'h') setDragging(true)
+        if (directionLocked.current === 'h') {
+          hasSwiped.current = true
+          setDragging(true)
+        }
       }
       return
     }
@@ -80,6 +87,16 @@ function WorkoutRow({ workout, onDelete }: { workout: Workout; onDelete: () => v
     setOffset(-window.innerWidth)
     await deleteWorkout(workout.id)
     setRemoving(true)
+  }
+
+  function handleRowClick() {
+    if (hasSwiped.current) return
+    if (revealed) {
+      setOffset(0)
+      setRevealed(false)
+      return
+    }
+    router.push(`/workout/${workout.id}`)
   }
 
   const deleteProgress = Math.min(1, Math.abs(offset) / DELETE_W)
@@ -116,6 +133,7 @@ function WorkoutRow({ workout, onDelete }: { workout: Workout; onDelete: () => v
 
         {/* Row */}
         <div
+          onClick={handleRowClick}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -126,6 +144,7 @@ function WorkoutRow({ workout, onDelete }: { workout: Workout; onDelete: () => v
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '14px 20px',
             userSelect: 'none', touchAction: 'pan-y', WebkitUserSelect: 'none',
+            cursor: 'pointer',
           }}
         >
           <div>
