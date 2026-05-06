@@ -33,6 +33,21 @@ export async function finishWorkout(workoutId: string) {
   revalidatePath('/dashboard')
 }
 
+export async function getAllExercises() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { data, error } = await supabase
+    .from('exercises')
+    .select('id, name, category, muscle_group')
+    .or(`is_default.eq.true,user_id.eq.${user.id}`)
+    .order('name')
+
+  if (error) throw error
+  return data ?? []
+}
+
 export async function searchExercises(query: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

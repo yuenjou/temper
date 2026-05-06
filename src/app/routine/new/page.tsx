@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import NavBar from '@/components/NavBar'
 import ExerciseIllustration from '@/components/ExerciseIllustration'
 import ForgeIcon from '@/components/ForgeIcon'
-import { searchExercises, createCustomExercise } from '@/app/workout/new/actions'
+import { getAllExercises, createCustomExercise } from '@/app/workout/new/actions'
+import { getCached, setCached, appendCached, filterCached } from '@/lib/exercise-cache'
 import { createRoutine } from '@/app/routine/actions'
 
 type Exercise = { id: string; name: string; category: string; muscle_group: string }
@@ -29,18 +30,23 @@ export default function NewRoutinePage() {
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Exercise[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const searchGen = useRef(0)
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false)
   const [showCustomForm, setShowCustomForm] = useState(false)
   const [customName, setCustomName] = useState('')
   const [customCategory, setCustomCategory] = useState('')
   const [customMuscleGroup, setCustomMuscleGroup] = useState('')
 
-  function openSearch() {
+  async function openSearch() {
     setShowSearch(true)
     setSearchQuery('')
     setSearchResults([])
     setShowCustomForm(false)
+    if (!getCached()) {
+      setIsLoadingExercises(true)
+      const exercises = await getAllExercises()
+      setCached(exercises)
+      setIsLoadingExercises(false)
+    }
   }
 
   function closeSearch() {
@@ -51,15 +57,7 @@ export default function NewRoutinePage() {
   }
 
   useEffect(() => {
-    if (searchQuery.length < 2) { setSearchResults([]); setIsSearching(false); return }
-    setIsSearching(true)
-    const gen = ++searchGen.current
-    const t = setTimeout(() => {
-      searchExercises(searchQuery).then(results => {
-        if (gen === searchGen.current) { setSearchResults(results); setIsSearching(false) }
-      })
-    }, 300)
-    return () => clearTimeout(t)
+    setSearchResults(filterCached(searchQuery))
   }, [searchQuery])
 
   function addExercise(ex: Exercise) {
@@ -76,6 +74,7 @@ export default function NewRoutinePage() {
   async function handleCreateCustom() {
     if (!customName.trim()) return
     const ex = await createCustomExercise(customName.trim(), customCategory.trim(), customMuscleGroup.trim())
+    appendCached(ex)
     addExercise(ex)
     setCustomName(''); setCustomCategory(''); setCustomMuscleGroup('')
   }
@@ -245,12 +244,12 @@ export default function NewRoutinePage() {
                       </button>
                     )
                   })}
-                  {isSearching && (
+                  {isLoadingExercises && (
                     <p style={{ color: 'var(--text-tertiary)', fontSize: 14, textAlign: 'center', padding: '24px 0 8px' }}>
-                      Searching…
+                      Loading…
                     </p>
                   )}
-                  {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
+                  {!isLoadingExercises && searchQuery.length >= 2 && searchResults.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '32px 20px' }}>
                       <p style={{ color: 'var(--text-secondary)', margin: '0 0 12px' }}>No exercises found</p>
                       <button onClick={() => setShowCustomForm(true)} style={{ color: 'var(--accent)', fontSize: 14, fontWeight: 600 }}>

@@ -1,18 +1,19 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import NavBar from '@/components/NavBar'
 import ExerciseIllustration from '@/components/ExerciseIllustration'
 import ForgeIcon from '@/components/ForgeIcon'
 import {
   finishWorkout,
-  searchExercises,
+  getAllExercises,
   createCustomExercise,
   logSet,
   deleteSet,
   checkNewPR,
 } from '../new/actions'
+import { getCached, setCached, appendCached, filterCached } from '@/lib/exercise-cache'
 
 type WorkoutSet = { id: string; reps: number; weight: number; weight_unit: string }
 type Exercise = { id: string; name: string; category: string; muscle_group: string }
@@ -57,8 +58,7 @@ export default function WorkoutLogger({ workoutId, workoutName, initialExercises
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Exercise[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const searchGen = useRef(0)
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false)
   const [showCustomForm, setShowCustomForm] = useState(false)
   const [customName, setCustomName] = useState('')
   const [customCategory, setCustomCategory] = useState('')
@@ -70,16 +70,19 @@ export default function WorkoutLogger({ workoutId, workoutName, initialExercises
   }, [])
 
   useEffect(() => {
-    if (searchQuery.length < 2) { setSearchResults([]); setIsSearching(false); return }
-    setIsSearching(true)
-    const gen = ++searchGen.current
-    const t = setTimeout(() => {
-      searchExercises(searchQuery).then(results => {
-        if (gen === searchGen.current) { setSearchResults(results); setIsSearching(false) }
-      })
-    }, 300)
-    return () => clearTimeout(t)
+    setSearchResults(filterCached(searchQuery))
   }, [searchQuery])
+
+  async function openSearch() {
+    setShowSearch(true)
+    if (!getCached()) {
+      setIsLoadingExercises(true)
+      const exercises = await getAllExercises()
+      setCached(exercises)
+      setIsLoadingExercises(false)
+      if (searchQuery.length >= 2) setSearchResults(filterCached(searchQuery))
+    }
+  }
 
   function addExercise(ex: Exercise) {
     if (entries.some(e => e.id === ex.id)) { closeSearch(); return }
@@ -124,6 +127,7 @@ export default function WorkoutLogger({ workoutId, workoutName, initialExercises
   async function handleCreateCustom() {
     if (!customName.trim()) return
     const ex = await createCustomExercise(customName.trim(), customCategory.trim(), customMuscleGroup.trim())
+    appendCached(ex)
     addExercise(ex)
     setCustomName(''); setCustomCategory(''); setCustomMuscleGroup('')
   }
@@ -168,7 +172,7 @@ export default function WorkoutLogger({ workoutId, workoutName, initialExercises
                 {workoutName ?? 'Workout'}
               </div>
             </div>
-            <button className="forge-icon-btn" onClick={() => setShowSearch(true)} aria-label="Add exercise">
+            <button className="forge-icon-btn" onClick={openSearch} aria-label="Add exercise">
               <ForgeIcon name="plus" size={20} />
             </button>
           </div>
@@ -297,7 +301,7 @@ export default function WorkoutLogger({ workoutId, workoutName, initialExercises
       {/* Fixed bottom bar */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20, background: 'rgba(28,28,30,0.92)', backdropFilter: 'saturate(180%) blur(28px)', WebkitBackdropFilter: 'saturate(180%) blur(28px)', borderTop: '0.5px solid var(--hairline)' }}>
         <div className="forge-main" style={{ display: 'flex', gap: 10, padding: '12px 20px 28px' }}>
-          <button onClick={() => setShowSearch(true)} className="forge-btn-secondary" style={{ flex: 1, fontSize: 15 }}>
+          <button onClick={openSearch} className="forge-btn-secondary" style={{ flex: 1, fontSize: 15 }}>
             <ForgeIcon name="plus" size={18} /> Exercise
           </button>
           <button onClick={handleFinish} className="forge-btn-primary" style={{ flex: 2 }}>
@@ -334,12 +338,12 @@ export default function WorkoutLogger({ workoutId, workoutName, initialExercises
                       </div>
                     </button>
                   ))}
-                  {isSearching && (
+                  {isLoadingExercises && (
                     <p style={{ color: 'var(--text-tertiary)', fontSize: 14, textAlign: 'center', padding: '24px 0 8px' }}>
-                      Searching…
+                      Loading…
                     </p>
                   )}
-                  {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
+                  {!isLoadingExercises && searchQuery.length >= 2 && searchResults.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '32px 20px' }}>
                       <p style={{ color: 'var(--text-secondary)', margin: '0 0 12px' }}>No exercises found</p>
                       <button onClick={() => setShowCustomForm(true)} style={{ color: 'var(--accent)', fontSize: 14, fontWeight: 600 }}>
