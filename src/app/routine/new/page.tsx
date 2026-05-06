@@ -1,0 +1,274 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import Link from 'next/link'
+import NavBar from '@/components/NavBar'
+import ExerciseIllustration from '@/components/ExerciseIllustration'
+import ForgeIcon from '@/components/ForgeIcon'
+import { searchExercises, createCustomExercise } from '@/app/workout/new/actions'
+import { createRoutine } from '@/app/routine/actions'
+
+type Exercise = { id: string; name: string; category: string; muscle_group: string }
+
+function illustrationFor(name: string): string {
+  const n = name.toLowerCase()
+  if (n.includes('bench') || (n.includes('press') && n.includes('chest'))) return 'bench-press'
+  if (n.includes('squat')) return 'squat'
+  if (n.includes('deadlift')) return 'deadlift'
+  if (n.includes('row')) return 'row'
+  if (n.includes('press') || n.includes('overhead') || n.includes('ohp')) return 'press'
+  if (n.includes('curl')) return 'curl'
+  return 'bench-press'
+}
+
+export default function NewRoutinePage() {
+  const [isPending, startTransition] = useTransition()
+  const [name, setName] = useState('')
+  const [exercises, setExercises] = useState<Exercise[]>([])
+
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<Exercise[]>([])
+  const [showCustomForm, setShowCustomForm] = useState(false)
+  const [customName, setCustomName] = useState('')
+  const [customCategory, setCustomCategory] = useState('')
+  const [customMuscleGroup, setCustomMuscleGroup] = useState('')
+
+  function openSearch() {
+    setShowSearch(true)
+    setSearchQuery('')
+    setSearchResults([])
+    setShowCustomForm(false)
+  }
+
+  function closeSearch() {
+    setShowSearch(false)
+    setShowCustomForm(false)
+    setSearchQuery('')
+    setSearchResults([])
+  }
+
+  async function handleSearch(q: string) {
+    setSearchQuery(q)
+    if (q.length < 2) { setSearchResults([]); return }
+    const results = await searchExercises(q)
+    setSearchResults(results)
+  }
+
+  function addExercise(ex: Exercise) {
+    if (!exercises.some(e => e.id === ex.id)) {
+      setExercises(prev => [...prev, ex])
+    }
+    closeSearch()
+  }
+
+  function removeExercise(id: string) {
+    setExercises(prev => prev.filter(e => e.id !== id))
+  }
+
+  async function handleCreateCustom() {
+    if (!customName.trim()) return
+    const ex = await createCustomExercise(customName.trim(), customCategory.trim(), customMuscleGroup.trim())
+    addExercise(ex)
+    setCustomName(''); setCustomCategory(''); setCustomMuscleGroup('')
+  }
+
+  function handleSubmit() {
+    if (!name.trim() || exercises.length === 0) return
+    startTransition(async () => {
+      await createRoutine(name.trim(), exercises.map(e => e.id))
+    })
+  }
+
+  const canSubmit = name.trim().length > 0 && exercises.length > 0 && !isPending
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '14px 16px',
+    background: 'var(--surface-2)', borderRadius: 'var(--r-md)',
+    border: 'none', color: 'var(--text-primary)',
+    fontSize: 16, fontFamily: 'inherit', outline: 'none',
+  }
+
+  return (
+    <>
+      <NavBar />
+      <main className="forge-main" style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 120 }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '0.5px solid var(--hairline)' }}>
+          <Link href="/workout/new" style={{ textDecoration: 'none' }}>
+            <button className="forge-icon-btn" aria-label="Back">
+              <ForgeIcon name="chevron-left" size={20} />
+            </button>
+          </Link>
+          <h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, textAlign: 'center' }}>New Routine</h1>
+          <div style={{ width: 36 }} />
+        </div>
+
+        <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+          {/* Routine name */}
+          <div>
+            <p className="forge-eyebrow" style={{ marginBottom: 10 }}>Routine Name</p>
+            <input
+              type="text"
+              placeholder="e.g. Push Day A"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              style={inputStyle}
+              autoFocus
+            />
+          </div>
+
+          {/* Exercises */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <p className="forge-eyebrow">Exercises</p>
+              {exercises.length > 0 && (
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 500 }}>
+                  {exercises.length} added
+                </span>
+              )}
+            </div>
+
+            {exercises.length > 0 && (
+              <div className="forge-card-flush" style={{ marginBottom: 12 }}>
+                {exercises.map((ex, i) => (
+                  <div key={ex.id} className="forge-row" style={{ justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <ExerciseIllustration name={illustrationFor(ex.name)} size={26} />
+                      </div>
+                      <div>
+                        <p style={{ fontWeight: 600, margin: 0, fontSize: 15 }}>{ex.name}</p>
+                        {ex.category && (
+                          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
+                            {ex.category}{ex.muscle_group ? ` · ${ex.muscle_group}` : ''}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 500 }}>#{i + 1}</span>
+                      <button
+                        onClick={() => removeExercise(ex.id)}
+                        style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}
+                      >
+                        <ForgeIcon name="close" size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={openSearch}
+              style={{
+                width: '100%', padding: '14px 20px',
+                border: '1.5px dashed var(--surface-3)', borderRadius: 'var(--r-lg)',
+                color: 'var(--text-tertiary)', fontSize: 15, fontWeight: 600,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                transition: 'border-color 0.15s ease, color 0.15s ease',
+                cursor: 'pointer',
+              }}
+            >
+              <ForgeIcon name="plus" size={18} />
+              Add Exercise
+            </button>
+          </div>
+        </div>
+      </main>
+
+      {/* Fixed save bar */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20, background: 'rgba(28,28,30,0.92)', backdropFilter: 'saturate(180%) blur(28px)', WebkitBackdropFilter: 'saturate(180%) blur(28px)', borderTop: '0.5px solid var(--hairline)' }}>
+        <div className="forge-main" style={{ padding: '12px 20px 28px' }}>
+          <button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="forge-btn-primary"
+            style={{ opacity: canSubmit ? 1 : 0.4 }}
+          >
+            {isPending ? 'Saving…' : 'Save Routine'}
+          </button>
+        </div>
+      </div>
+
+      {/* Exercise search modal */}
+      {showSearch && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={closeSearch}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 540, background: 'var(--surface-1)', borderRadius: '24px 24px 0 0', padding: '20px 20px 40px', border: '0.5px solid var(--hairline-strong)', boxShadow: '0 -8px 40px rgba(0,0,0,0.5)' }}>
+            <div style={{ width: 36, height: 4, background: 'var(--surface-3)', borderRadius: 2, margin: '0 auto 20px' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{showCustomForm ? 'New Exercise' : 'Add Exercise'}</h2>
+              <button className="forge-icon-btn" onClick={closeSearch}><ForgeIcon name="close" size={18} /></button>
+            </div>
+
+            {!showCustomForm ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)', marginBottom: 12 }}>
+                  <ForgeIcon name="search" size={16} color="var(--text-tertiary)" />
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Search exercises…"
+                    value={searchQuery}
+                    onChange={e => handleSearch(e.target.value)}
+                    style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 15, fontFamily: 'inherit' }}
+                  />
+                </div>
+                <div style={{ maxHeight: 300, overflowY: 'auto' }} className="no-scrollbar">
+                  {searchResults.map(ex => {
+                    const alreadyAdded = exercises.some(e => e.id === ex.id)
+                    return (
+                      <button
+                        key={ex.id}
+                        onClick={() => addExercise(ex)}
+                        disabled={alreadyAdded}
+                        style={{ width: '100%', textAlign: 'left', padding: '12px 8px', borderBottom: '0.5px solid var(--hairline)', display: 'flex', alignItems: 'center', gap: 12, borderRadius: 0, opacity: alreadyAdded ? 0.4 : 1 }}
+                      >
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <ExerciseIllustration name={illustrationFor(ex.name)} size={30} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: 600, margin: 0, fontSize: 15 }}>{ex.name}</p>
+                          {ex.category && <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>{ex.category}{ex.muscle_group ? ` · ${ex.muscle_group}` : ''}</p>}
+                        </div>
+                        {alreadyAdded && <ForgeIcon name="check" size={16} color="var(--green)" />}
+                      </button>
+                    )
+                  })}
+                  {searchQuery.length >= 2 && searchResults.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+                      <p style={{ color: 'var(--text-secondary)', margin: '0 0 12px' }}>No exercises found</p>
+                      <button onClick={() => setShowCustomForm(true)} style={{ color: 'var(--accent)', fontSize: 14, fontWeight: 600 }}>
+                        Create &quot;{searchQuery}&quot; as custom
+                      </button>
+                    </div>
+                  )}
+                  {searchQuery.length < 2 && (
+                    <p style={{ color: 'var(--text-tertiary)', fontSize: 14, textAlign: 'center', padding: '24px 0 8px' }}>
+                      Type at least 2 characters to search
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <input autoFocus type="text" placeholder="Exercise name *" value={customName} onChange={e => setCustomName(e.target.value)} style={{ padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)', border: 'none', color: 'var(--text-primary)', fontSize: 15, fontFamily: 'inherit', outline: 'none' }} />
+                <input type="text" placeholder="Category (e.g. Strength)" value={customCategory} onChange={e => setCustomCategory(e.target.value)} style={{ padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)', border: 'none', color: 'var(--text-primary)', fontSize: 15, fontFamily: 'inherit', outline: 'none' }} />
+                <input type="text" placeholder="Muscle group (e.g. Chest)" value={customMuscleGroup} onChange={e => setCustomMuscleGroup(e.target.value)} style={{ padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 'var(--r-md)', border: 'none', color: 'var(--text-primary)', fontSize: 15, fontFamily: 'inherit', outline: 'none' }} />
+                <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                  <button onClick={() => setShowCustomForm(false)} className="forge-btn-secondary" style={{ flex: 1, fontSize: 15 }}>Back</button>
+                  <button onClick={handleCreateCustom} disabled={!customName.trim()} className="forge-btn-primary" style={{ flex: 2, opacity: customName.trim() ? 1 : 0.45 }}>
+                    Create &amp; Add
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
