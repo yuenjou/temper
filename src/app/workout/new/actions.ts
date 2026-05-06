@@ -189,3 +189,26 @@ export async function deleteSet(setId: string) {
   const { error } = await supabase.from('sets').delete().eq('id', setId)
   if (error) throw error
 }
+
+export async function deleteWorkout(workoutId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { data: workout } = await supabase
+    .from('workouts')
+    .select('id')
+    .eq('id', workoutId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!workout) throw new Error('Unauthorized')
+
+  await supabase.from('sets').delete().eq('workout_id', workoutId)
+
+  const { error } = await supabase.from('workouts').delete().eq('id', workoutId)
+  if (error) throw error
+
+  revalidatePath('/workout/new')
+  revalidatePath('/dashboard')
+}

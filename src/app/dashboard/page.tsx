@@ -4,6 +4,7 @@ import Link from 'next/link'
 import NavBar from '@/components/NavBar'
 import ProgressRing from '@/components/ProgressRing'
 import ForgeIcon from '@/components/ForgeIcon'
+import WorkoutHistory from '@/components/WorkoutHistory'
 
 type Workout = {
   id: string
@@ -221,19 +222,7 @@ export default async function DashboardPage() {
               <p style={{ color: 'var(--text-tertiary)', fontSize: 14, margin: '4px 0 0' }}>Start your first session!</p>
             </div>
           ) : (
-            <div className="forge-card-flush">
-              {typedWorkouts.map(workout => (
-                <div key={workout.id} className="forge-row" style={{ justifyContent: 'space-between' }}>
-                  <div>
-                    <p style={{ fontWeight: 600, margin: 0, fontSize: 15 }}>{workout.name ?? 'Workout'}</p>
-                    <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '2px 0 0' }}>
-                      {new Date(workout.started_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                    </p>
-                  </div>
-                  <ForgeIcon name="chevron-right" size={16} color="var(--text-tertiary)" />
-                </div>
-              ))}
-            </div>
+            <WorkoutHistory workouts={typedWorkouts} />
           )}
         </section>
 

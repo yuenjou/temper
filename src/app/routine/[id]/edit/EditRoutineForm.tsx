@@ -38,6 +38,8 @@ export default function EditRoutineForm({ routineId, initialName, initialExercis
     Object.fromEntries(initialExercises.map(e => [e.id, { reps: '', weight: '' }]))
   )
 
+  const [setErrors, setSetErrors] = useState<Record<string, string | null>>({})
+
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Exercise[]>([])
@@ -87,9 +89,16 @@ export default function EditRoutineForm({ routineId, initialName, initialExercis
 
   function handleAddPlannedSet(exerciseId: string) {
     const { reps: repsStr, weight: weightStr } = setInputs[exerciseId] ?? {}
-    const reps = parseInt(repsStr)
-    const weight = parseFloat(weightStr)
-    if (!reps || !weight) return
+    const lastSet = (plannedSets[exerciseId] ?? []).at(-1) ?? null
+    const repsVal = repsStr || (lastSet ? String(lastSet.reps) : '')
+    const weightVal = weightStr || (lastSet ? String(lastSet.weight) : '')
+    const reps = parseInt(repsVal)
+    const weight = parseFloat(weightVal)
+    if (!reps || !weight) {
+      setSetErrors(prev => ({ ...prev, [exerciseId]: 'Enter a weight and reps' }))
+      return
+    }
+    setSetErrors(prev => ({ ...prev, [exerciseId]: null }))
     setPlannedSets(prev => ({
       ...prev,
       [exerciseId]: [...(prev[exerciseId] ?? []), { reps, weight, weight_unit: 'kg' }],
@@ -184,6 +193,7 @@ export default function EditRoutineForm({ routineId, initialName, initialExercis
                 {exercises.map((ex, i) => {
                   const sets = plannedSets[ex.id] ?? []
                   const inp = setInputs[ex.id] ?? { reps: '', weight: '' }
+                  const lastSet = sets.at(-1) ?? null
                   return (
                     <div key={ex.id} className="forge-card" style={{ padding: 0, overflow: 'hidden' }}>
 
@@ -240,31 +250,44 @@ export default function EditRoutineForm({ routineId, initialName, initialExercis
                       )}
 
                       {/* Add set row */}
-                      <div style={{ display: 'flex', gap: 8, padding: '10px 16px', borderTop: '0.5px solid var(--hairline)', alignItems: 'center' }}>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          placeholder="kg"
-                          value={inp.weight}
-                          onChange={e => setSetInputs(prev => ({ ...prev, [ex.id]: { ...prev[ex.id], weight: e.target.value } }))}
-                          onKeyDown={e => { if (e.key === 'Enter') handleAddPlannedSet(ex.id) }}
-                          style={setInputStyle}
-                        />
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          placeholder="reps"
-                          value={inp.reps}
-                          onChange={e => setSetInputs(prev => ({ ...prev, [ex.id]: { ...prev[ex.id], reps: e.target.value } }))}
-                          onKeyDown={e => { if (e.key === 'Enter') handleAddPlannedSet(ex.id) }}
-                          style={setInputStyle}
-                        />
-                        <button
-                          onClick={() => handleAddPlannedSet(ex.id)}
-                          style={{ padding: '9px 16px', flexShrink: 0, background: 'var(--surface-3)', color: 'var(--text-primary)', borderRadius: 'var(--r-md)', fontWeight: 700, fontSize: 13 }}
-                        >
-                          + Set
-                        </button>
+                      <div style={{ borderTop: '0.5px solid var(--hairline)' }}>
+                        <div style={{ display: 'flex', gap: 8, padding: '10px 16px', alignItems: 'center' }}>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            placeholder={lastSet ? String(lastSet.weight) : 'kg'}
+                            value={inp.weight}
+                            onChange={e => {
+                              setSetInputs(prev => ({ ...prev, [ex.id]: { ...prev[ex.id], weight: e.target.value } }))
+                              if (setErrors[ex.id]) setSetErrors(prev => ({ ...prev, [ex.id]: null }))
+                            }}
+                            onKeyDown={e => { if (e.key === 'Enter') handleAddPlannedSet(ex.id) }}
+                            style={setInputStyle}
+                          />
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            placeholder={lastSet ? String(lastSet.reps) : 'reps'}
+                            value={inp.reps}
+                            onChange={e => {
+                              setSetInputs(prev => ({ ...prev, [ex.id]: { ...prev[ex.id], reps: e.target.value } }))
+                              if (setErrors[ex.id]) setSetErrors(prev => ({ ...prev, [ex.id]: null }))
+                            }}
+                            onKeyDown={e => { if (e.key === 'Enter') handleAddPlannedSet(ex.id) }}
+                            style={setInputStyle}
+                          />
+                          <button
+                            onClick={() => handleAddPlannedSet(ex.id)}
+                            style={{ padding: '9px 16px', flexShrink: 0, background: 'var(--surface-3)', color: 'var(--text-primary)', borderRadius: 'var(--r-md)', fontWeight: 700, fontSize: 13 }}
+                          >
+                            + Set
+                          </button>
+                        </div>
+                        {setErrors[ex.id] && (
+                          <p style={{ fontSize: 12, color: 'var(--accent)', margin: 0, padding: '0 16px 10px' }}>
+                            {setErrors[ex.id]}
+                          </p>
+                        )}
                       </div>
 
                     </div>

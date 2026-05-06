@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import NavBar from '@/components/NavBar'
 import ForgeIcon from '@/components/ForgeIcon'
+import WorkoutHistory from '@/components/WorkoutHistory'
 import { createAndStartWorkout, startRoutineWorkout } from '@/app/routine/actions'
 
 type RoutineExercise = {
@@ -171,25 +172,7 @@ export default async function WorkoutNewPage() {
         {/* Workout History */}
         <section style={{ padding: '0 20px' }}>
           <p className="forge-eyebrow" style={{ marginBottom: 12 }}>History</p>
-          {typedWorkouts.length === 0 ? (
-            <div className="forge-card" style={{ textAlign: 'center', padding: '24px 20px' }}>
-              <p style={{ color: 'var(--text-tertiary)', fontSize: 14, margin: 0 }}>No workouts logged yet</p>
-            </div>
-          ) : (
-            <div className="forge-card-flush">
-              {typedWorkouts.map(workout => (
-                <div key={workout.id} className="forge-row" style={{ justifyContent: 'space-between' }}>
-                  <div>
-                    <p style={{ fontWeight: 600, margin: 0, fontSize: 15 }}>{workout.name ?? 'Workout'}</p>
-                    <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '2px 0 0' }}>
-                      {new Date(workout.started_at).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                    </p>
-                  </div>
-                  <ForgeIcon name="chevron-right" size={16} color="var(--text-tertiary)" />
-                </div>
-              ))}
-            </div>
-          )}
+          <WorkoutHistory workouts={typedWorkouts} />
         </section>
 
       </main>

@@ -285,6 +285,8 @@ export default function WorkoutLogger({
   const [elapsed, setElapsed] = useState(0)
   const [restSeconds, setRestSeconds] = useState<number | null>(null)
 
+  const [inputErrors, setInputErrors] = useState<Record<string, string | null>>({})
+
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Exercise[]>([])
@@ -356,6 +358,7 @@ export default function WorkoutLogger({
 
   function setInput(exerciseId: string, field: 'reps' | 'weight', value: string) {
     setInputs(prev => ({ ...prev, [exerciseId]: { ...prev[exerciseId], [field]: value } }))
+    if (inputErrors[exerciseId]) setInputErrors(prev => ({ ...prev, [exerciseId]: null }))
   }
 
   async function handleAddSet(exerciseId: string) {
@@ -367,7 +370,11 @@ export default function WorkoutLogger({
 
     const reps = parseInt(repsVal)
     const weight = parseFloat(weightVal)
-    if (!reps || !weight) return
+    if (!reps || !weight) {
+      setInputErrors(prev => ({ ...prev, [exerciseId]: 'Enter a weight and reps to log your first set' }))
+      return
+    }
+    setInputErrors(prev => ({ ...prev, [exerciseId]: null }))
 
     const set = await logSet(workoutId, exerciseId, reps, weight)
     setEntries(prev => prev.map(e => e.id === exerciseId ? { ...e, sets: [...e.sets, set] } : e))
@@ -609,6 +616,11 @@ export default function WorkoutLogger({
                       Add
                     </button>
                   </div>
+                  {inputErrors[activeEntry.id] && (
+                    <p style={{ fontSize: 12, color: 'var(--accent)', margin: '2px 0 0', paddingLeft: 2 }}>
+                      {inputErrors[activeEntry.id]}
+                    </p>
+                  )}
                 </div>
 
                 {/* Notes field */}
