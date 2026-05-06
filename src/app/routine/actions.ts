@@ -110,3 +110,54 @@ export async function createRoutine(name: string, exercises: ExerciseInput[]) {
   revalidatePath('/workout/new')
   redirect('/workout/new')
 }
+
+export async function updateRoutine(id: string, name: string, exercises: ExerciseInput[]) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { data: existing } = await supabase
+    .from('routines')
+    .select('id')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!existing) throw new Error('Routine not found')
+
+  const { error: updateError } = await supabase
+    .from('routines')
+    .update({ name: name.trim() })
+    .eq('id', id)
+
+  if (updateError) throw updateError
+
+  await supabase.from('routine_sets').delete().eq('routine_id', id)
+  await supabase.from('routine_exercises').delete().eq('routine_id', id)
+
+  if (exercises.length > 0) {
+    const { error: reError } = await supabase
+      .from('routine_exercises')
+      .insert(exercises.map((ex, i) => ({ routine_id: id, exercise_id: ex.id, order_index: i })))
+    if (reError) throw reError
+  }
+
+  const allSets = exercises.flatMap((ex) =>
+    ex.sets.map((s, j) => ({
+      routine_id: id,
+      exercise_id: ex.id,
+      reps: s.reps,
+      weight: s.weight,
+      weight_unit: s.weight_unit ?? 'kg',
+      order_index: j,
+    }))
+  )
+
+  if (allSets.length > 0) {
+    const { error: rsError } = await supabase.from('routine_sets').insert(allSets)
+    if (rsError) throw rsError
+  }
+
+  revalidatePath('/workout/new')
+  redirect('/workout/new')
+}

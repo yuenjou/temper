@@ -6,10 +6,17 @@ import ExerciseIllustration from '@/components/ExerciseIllustration'
 import ForgeIcon from '@/components/ForgeIcon'
 import { getAllExercises, createCustomExercise } from '@/app/workout/new/actions'
 import { getCached, setCached, appendCached, filterCached } from '@/lib/exercise-cache'
-import { createRoutine } from '@/app/routine/actions'
+import { updateRoutine } from '@/app/routine/actions'
 
 type Exercise = { id: string; name: string; category: string; muscle_group: string }
 type PlannedSet = { reps: number; weight: number; weight_unit: string }
+
+type Props = {
+  routineId: string
+  initialName: string
+  initialExercises: Exercise[]
+  initialPlannedSets: Record<string, PlannedSet[]>
+}
 
 function illustrationFor(name: string): string {
   const n = name.toLowerCase()
@@ -22,12 +29,14 @@ function illustrationFor(name: string): string {
   return 'bench-press'
 }
 
-export default function NewRoutinePage() {
+export default function EditRoutineForm({ routineId, initialName, initialExercises, initialPlannedSets }: Props) {
   const [isPending, startTransition] = useTransition()
-  const [name, setName] = useState('')
-  const [exercises, setExercises] = useState<Exercise[]>([])
-  const [plannedSets, setPlannedSets] = useState<Record<string, PlannedSet[]>>({})
-  const [setInputs, setSetInputs] = useState<Record<string, { reps: string; weight: string }>>({})
+  const [name, setName] = useState(initialName)
+  const [exercises, setExercises] = useState<Exercise[]>(initialExercises)
+  const [plannedSets, setPlannedSets] = useState<Record<string, PlannedSet[]>>(initialPlannedSets)
+  const [setInputs, setSetInputs] = useState<Record<string, { reps: string; weight: string }>>(
+    Object.fromEntries(initialExercises.map(e => [e.id, { reps: '', weight: '' }]))
+  )
 
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -45,8 +54,8 @@ export default function NewRoutinePage() {
     setShowCustomForm(false)
     if (!getCached()) {
       setIsLoadingExercises(true)
-      const exercises = await getAllExercises()
-      setCached(exercises)
+      const list = await getAllExercises()
+      setCached(list)
       setIsLoadingExercises(false)
     }
   }
@@ -106,7 +115,7 @@ export default function NewRoutinePage() {
   function handleSubmit() {
     if (!name.trim() || exercises.length === 0) return
     startTransition(async () => {
-      await createRoutine(name.trim(), exercises.map(e => ({
+      await updateRoutine(routineId, name.trim(), exercises.map(e => ({
         id: e.id,
         sets: plannedSets[e.id] ?? [],
       })))
@@ -141,7 +150,7 @@ export default function NewRoutinePage() {
               <ForgeIcon name="chevron-left" size={20} />
             </button>
           </Link>
-          <h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, textAlign: 'center' }}>New Routine</h1>
+          <h1 style={{ flex: 1, fontSize: 18, fontWeight: 700, margin: 0, textAlign: 'center' }}>Edit Routine</h1>
           <div style={{ width: 36 }} />
         </div>
 
@@ -156,7 +165,6 @@ export default function NewRoutinePage() {
               value={name}
               onChange={e => setName(e.target.value)}
               style={inputStyle}
-              autoFocus
             />
           </div>
 
@@ -292,7 +300,7 @@ export default function NewRoutinePage() {
             className="forge-btn-primary"
             style={{ opacity: canSubmit ? 1 : 0.4 }}
           >
-            {isPending ? 'Saving…' : 'Save Routine'}
+            {isPending ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
       </div>
