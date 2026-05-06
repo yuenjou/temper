@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import NavBar from '@/components/NavBar'
 import ExerciseIllustration from '@/components/ExerciseIllustration'
 import ForgeIcon from '@/components/ForgeIcon'
 import {
@@ -152,25 +151,32 @@ export default function WorkoutLogger({ workoutId, workoutName, initialExercises
 
   return (
     <>
-      <NavBar />
       <div style={{ background: 'var(--bg)', minHeight: '100vh', paddingBottom: 120 }}>
         <div className="forge-main">
 
-          {/* Header */}
+          {/* Floating pill header */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '12px 16px',
+            position: 'sticky', top: 0, zIndex: 10,
+            background: 'rgba(18,18,20,0.92)',
+            backdropFilter: 'saturate(180%) blur(24px)',
+            WebkitBackdropFilter: 'saturate(180%) blur(24px)',
             borderBottom: '0.5px solid var(--hairline)',
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '10px 16px',
           }}>
             <button className="forge-icon-btn" onClick={handleFinish} aria-label="Finish workout">
               <ForgeIcon name="check" size={20} />
             </button>
-            <div style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                ● Live
-              </div>
-              <div style={{ fontSize: 15, fontWeight: 600, marginTop: 2 }}>
-                {workoutName ?? 'Workout'}
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                background: 'rgba(255,59,48,0.12)', border: '0.5px solid rgba(255,59,48,0.3)',
+                borderRadius: 100, padding: '6px 16px',
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {workoutName ?? 'Workout'} &mdash; {formatTime(elapsed)}
+                </span>
               </div>
             </div>
             <button className="forge-icon-btn" onClick={openSearch} aria-label="Add exercise">

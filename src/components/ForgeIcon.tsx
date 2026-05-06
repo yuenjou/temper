@@ -34,6 +34,8 @@ export default function ForgeIcon({ name, size = 22, color = 'currentColor', str
     case 'trophy': return <svg {...p}><path d="M8 4h8v4a4 4 0 1 1-8 0V4zM6 4H3v2a3 3 0 0 0 3 3M18 4h3v2a3 3 0 0 1-3 3M9 17h6M10 13l-1 4h6l-1-4M12 20v-3" /></svg>
     case 'ruler': return <svg {...p}><path d="M21.3 8.7 8.7 21.3c-1 1-2.5 1-3.4 0l-2.6-2.6c-1-1-1-2.5 0-3.4L15.3 2.7c1-1 2.5-1 3.4 0l2.6 2.6c1 1 1 2.5 0 3.4" /><path d="m7.5 10.5 2 2" /><path d="m10.5 7.5 2 2" /><path d="m13.5 4.5 2 2" /><path d="m4.5 13.5 2 2" /></svg>
     case 'info': return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.01" /></svg>
+    case 'apple': return <svg {...p}><path d="M12 5c-1 0-2.5-.5-3-1.5C9.5 4.5 10 6 10 7c0 2.2-1.8 4-4 4-.7 0-1.4-.2-2-.5C4.7 12 5 14 6 15.5c.9 1.4 2 2.5 3 2.5.6 0 1.1-.3 1.5-.5.4.2.9.5 1.5.5s1.1-.3 1.5-.5c.4.2.9.5 1.5.5 1 0 2.1-1.1 3-2.5 1-1.5 1.3-3.5 1-5-.6.3-1.3.5-2 .5-2.2 0-4-1.8-4-4 0-1 .5-2.5 1-3C13.5 4.5 13 5 12 5z" /></svg>
+    case 'water': return <svg {...p}><path d="M12 2L6 10a6 6 0 1 0 12 0L12 2z" /></svg>
     default: return null
   }
 }
