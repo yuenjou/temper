@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import NavBar from '@/components/NavBar'
 import ExerciseIllustration from '@/components/ExerciseIllustration'
@@ -57,6 +57,8 @@ export default function WorkoutLogger({ workoutId, workoutName, initialExercises
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Exercise[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const searchGen = useRef(0)
   const [showCustomForm, setShowCustomForm] = useState(false)
   const [customName, setCustomName] = useState('')
   const [customCategory, setCustomCategory] = useState('')
@@ -68,8 +70,14 @@ export default function WorkoutLogger({ workoutId, workoutName, initialExercises
   }, [])
 
   useEffect(() => {
-    if (searchQuery.length < 2) { setSearchResults([]); return }
-    const t = setTimeout(() => { searchExercises(searchQuery).then(setSearchResults) }, 300)
+    if (searchQuery.length < 2) { setSearchResults([]); setIsSearching(false); return }
+    setIsSearching(true)
+    const gen = ++searchGen.current
+    const t = setTimeout(() => {
+      searchExercises(searchQuery).then(results => {
+        if (gen === searchGen.current) { setSearchResults(results); setIsSearching(false) }
+      })
+    }, 300)
     return () => clearTimeout(t)
   }, [searchQuery])
 
@@ -326,7 +334,12 @@ export default function WorkoutLogger({ workoutId, workoutName, initialExercises
                       </div>
                     </button>
                   ))}
-                  {searchQuery.length >= 2 && searchResults.length === 0 && (
+                  {isSearching && (
+                    <p style={{ color: 'var(--text-tertiary)', fontSize: 14, textAlign: 'center', padding: '24px 0 8px' }}>
+                      Searching…
+                    </p>
+                  )}
+                  {!isSearching && searchQuery.length >= 2 && searchResults.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '32px 20px' }}>
                       <p style={{ color: 'var(--text-secondary)', margin: '0 0 12px' }}>No exercises found</p>
                       <button onClick={() => setShowCustomForm(true)} style={{ color: 'var(--accent)', fontSize: 14, fontWeight: 600 }}>
