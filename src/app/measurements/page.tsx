@@ -33,7 +33,7 @@ export default async function MeasurementsPage() {
   return (
     <>
       <NavBar />
-      <main className="forge-main" style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 120 }}>
+      <main className="forge-main" style={{ minHeight: '100vh', paddingBottom: 120 }}>
 
         {/* Header */}
         <section style={{ padding: '20px 24px 24px' }}>

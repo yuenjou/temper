@@ -191,13 +191,13 @@ export default function WorkoutSummary({ workoutId, workoutName, startedAt, init
   const totalSets = entries.reduce((n, e) => n + e.sets.length, 0)
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh', paddingBottom: 120 }}>
+    <div style={{ minHeight: '100vh', paddingBottom: 120 }}>
       <div className="forge-main">
 
         {/* Header */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 10,
-          background: 'rgba(18,18,20,0.92)',
+          background: 'rgba(5,5,7,0.82)',
           backdropFilter: 'saturate(180%) blur(24px)',
           WebkitBackdropFilter: 'saturate(180%) blur(24px)',
           borderBottom: '0.5px solid var(--hairline)',

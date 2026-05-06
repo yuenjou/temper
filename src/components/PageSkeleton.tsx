@@ -26,7 +26,7 @@ export function PageSkeleton({ title, children }: { title: string; children: Rea
   return (
     <>
       <NavBar />
-      <main className="forge-main" style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 120 }}>
+      <main className="forge-main" style={{ minHeight: '100vh', paddingBottom: 120 }}>
         <section style={{ padding: '20px 24px 24px' }}>
           <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{title}</h1>
         </section>

@@ -15,10 +15,11 @@ export default function NavBar() {
   return (
     <nav style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-      background: 'rgba(18,18,20,0.92)',
-      backdropFilter: 'saturate(180%) blur(24px)',
-      WebkitBackdropFilter: 'saturate(180%) blur(24px)',
-      borderTop: '0.5px solid var(--hairline)',
+      background: 'linear-gradient(180deg, rgba(5,5,7,0.7) 0%, rgba(5,5,7,0.88) 100%)',
+      backdropFilter: 'blur(40px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+      borderTop: '0.5px solid rgba(255,255,255,0.1)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
       paddingBottom: 'env(safe-area-inset-bottom)',
     }}>
       <div className="forge-main" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>

@@ -60,7 +60,7 @@ export default async function FoodPage() {
   return (
     <>
       <NavBar />
-      <main className="forge-main" style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 120 }}>
+      <main className="forge-main" style={{ minHeight: '100vh', paddingBottom: 120 }}>
         <FoodClient
           entries={(entriesRaw ?? []) as FoodEntry[]}
           favourites={(favouritesRaw ?? []) as FoodFavourite[]}

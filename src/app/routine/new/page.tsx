@@ -132,7 +132,7 @@ export default function NewRoutinePage() {
 
   return (
     <>
-      <main className="forge-main" style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 120 }}>
+      <main className="forge-main" style={{ minHeight: '100vh', paddingBottom: 120 }}>
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '0.5px solid var(--hairline)' }}>
