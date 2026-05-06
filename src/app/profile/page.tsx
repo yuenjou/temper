@@ -4,6 +4,7 @@ import Link from 'next/link'
 import NavBar from '@/components/NavBar'
 import ForgeIcon from '@/components/ForgeIcon'
 import ProfileInfo from './ProfileInfo'
+import GoalsCard from './GoalsCard'
 import BodyweightChart from '@/app/measurements/BodyweightChart'
 import ExerciseIllustration from '@/components/ExerciseIllustration'
 import { signOut } from './actions'
@@ -94,6 +95,7 @@ export default async function ProfilePage() {
     { data: profileData },
     { data: prs },
     { data: bodyweightData },
+    { data: targetsData },
   ] = await Promise.all([
     supabase.from('workouts').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('personal_records').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
@@ -101,6 +103,7 @@ export default async function ProfilePage() {
     supabase.from('user_profiles').select('height, height_unit, date_of_birth').eq('user_id', user.id).maybeSingle(),
     supabase.from('personal_records').select('id, exercise_id, reps, weight, weight_unit, achieved_at, exercises(name)').eq('user_id', user.id).order('achieved_at', { ascending: false }).limit(8),
     supabase.from('measurements').select('value, recorded_at').eq('user_id', user.id).eq('type', 'bodyweight').order('recorded_at', { ascending: true }),
+    supabase.from('daily_targets').select('calories, protein, carbs, fat, goal_type').eq('user_id', user.id).maybeSingle(),
   ])
 
   const finishedAts = (finishedWorkouts ?? []).map(w => w.finished_at as string)
@@ -151,6 +154,12 @@ export default async function ProfilePage() {
         {/* Physical Info */}
         <section style={{ padding: '0 20px 20px' }}>
           <ProfileInfo profile={profileData ?? null} />
+        </section>
+
+        {/* Goals */}
+        <section style={{ padding: '0 20px 20px' }}>
+          <p className="forge-eyebrow" style={{ marginBottom: 12 }}>Goals</p>
+          <GoalsCard goals={targetsData ?? null} />
         </section>
 
         {/* Stats Grid */}
@@ -301,15 +310,6 @@ export default async function ProfilePage() {
                 <ForgeIcon name="chevron-right" size={16} color="var(--text-tertiary)" />
               </div>
             </Link>
-            <div className="forge-row" style={{ justifyContent: 'space-between', opacity: 0.6 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(48, 209, 88, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <ForgeIcon name="trend-up" size={16} color="var(--green)" />
-                </div>
-                <span style={{ fontWeight: 500, fontSize: 15 }}>Goals &amp; Targets</span>
-              </div>
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Soon</span>
-            </div>
             <div className="forge-row" style={{ justifyContent: 'space-between', opacity: 0.6 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255, 159, 10, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

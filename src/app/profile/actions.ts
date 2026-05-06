@@ -29,3 +29,28 @@ export async function upsertProfile(data: {
 
   revalidatePath('/profile')
 }
+
+export async function upsertDailyTargets(data: {
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  goal_type: string
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  await supabase.from('daily_targets').upsert({
+    user_id: user.id,
+    calories: data.calories,
+    protein: data.protein,
+    carbs: data.carbs,
+    fat: data.fat,
+    goal_type: data.goal_type,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id' })
+
+  revalidatePath('/profile')
+  revalidatePath('/food')
+}

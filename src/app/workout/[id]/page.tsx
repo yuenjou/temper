@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import WorkoutLogger from './WorkoutLogger'
+import { getPreviousSets } from '../new/actions'
 
 type Exercise = { id: string; name: string; category: string; muscle_group: string }
 type WorkoutSet = { id: string; reps: number; weight: number; weight_unit: string }
@@ -65,12 +66,17 @@ export default async function WorkoutPage({
     }
   }
 
+  const initialPrevSets = initialExercises.length > 0
+    ? await getPreviousSets(initialExercises.map(e => e.id), workout.id)
+    : {}
+
   return (
     <WorkoutLogger
       workoutId={workout.id}
       workoutName={workout.name}
       initialExercises={initialExercises}
       initialSets={initialSets}
+      initialPrevSets={initialPrevSets}
     />
   )
 }

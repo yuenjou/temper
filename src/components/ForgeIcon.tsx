@@ -36,6 +36,7 @@ export default function ForgeIcon({ name, size = 22, color = 'currentColor', str
     case 'info': return <svg {...p}><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.01" /></svg>
     case 'apple': return <svg {...p}><path d="M12 5c-1 0-2.5-.5-3-1.5C9.5 4.5 10 6 10 7c0 2.2-1.8 4-4 4-.7 0-1.4-.2-2-.5C4.7 12 5 14 6 15.5c.9 1.4 2 2.5 3 2.5.6 0 1.1-.3 1.5-.5.4.2.9.5 1.5.5s1.1-.3 1.5-.5c.4.2.9.5 1.5.5 1 0 2.1-1.1 3-2.5 1-1.5 1.3-3.5 1-5-.6.3-1.3.5-2 .5-2.2 0-4-1.8-4-4 0-1 .5-2.5 1-3C13.5 4.5 13 5 12 5z" /></svg>
     case 'water': return <svg {...p}><path d="M12 2L6 10a6 6 0 1 0 12 0L12 2z" /></svg>
+    case 'pencil': return <svg {...p}><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
     default: return null
   }
 }
