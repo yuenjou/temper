@@ -1,6 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+function fmtDate(iso: string) {
+  const d = new Date(iso)
+  return `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`
+}
+
 import ForgeIcon from '@/components/ForgeIcon'
 import { deleteWorkout } from '@/app/workout/new/actions'
 
@@ -123,9 +131,7 @@ function WorkoutRow({ workout, onDelete }: { workout: Workout; onDelete: () => v
           <div>
             <p style={{ fontWeight: 600, margin: 0, fontSize: 15 }}>{workout.name ?? 'Workout'}</p>
             <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '2px 0 0' }}>
-              {new Date(workout.started_at).toLocaleDateString(undefined, {
-                weekday: 'short', month: 'short', day: 'numeric',
-              })}
+              {fmtDate(workout.started_at)}
             </p>
           </div>
           <ForgeIcon name="chevron-right" size={16} color="var(--text-tertiary)" />

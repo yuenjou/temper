@@ -75,7 +75,8 @@ export default function BodyweightChart({ entries }: { entries: Entry[] }) {
 
       {xIndices.map(i => {
         const d = new Date(sorted[i].recorded_at)
-        const label = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+        const label = `${MONTHS[d.getMonth()]} ${d.getDate()}`
         return (
           <text
             key={i}

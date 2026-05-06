@@ -1,6 +1,15 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+function fmtDate(iso: string, withWeekday = false) {
+  const d = new Date(iso)
+  const base = `${MONTHS[d.getMonth()]} ${d.getDate()}`
+  return withWeekday ? `${WEEKDAYS[d.getDay()]}, ${base}` : base
+}
+
 import ForgeIcon from '@/components/ForgeIcon'
 import BodyweightChart from './BodyweightChart'
 import { deleteMeasurement } from './actions'
@@ -87,7 +96,6 @@ function MeasurementRow({
   }
 
   const deleteProgress = Math.min(1, Math.abs(offset) / DELETE_W)
-  const date = new Date(entry.recorded_at)
 
   return (
     <div style={{
@@ -133,10 +141,7 @@ function MeasurementRow({
             fontSize: isLatest ? 13 : 13,
             color: isLatest ? 'var(--text-tertiary)' : 'var(--text-tertiary)',
           }}>
-            {date.toLocaleDateString(undefined, {
-              month: 'short', day: 'numeric',
-              ...(isLatest ? { weekday: 'short' } : {}),
-            })}
+            {fmtDate(entry.recorded_at, isLatest)}
           </span>
           <span style={{
             fontWeight: isLatest ? 700 : 500,
