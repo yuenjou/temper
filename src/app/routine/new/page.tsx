@@ -10,6 +10,7 @@ import { getCached, setCached, appendCached, filterCached } from '@/lib/exercise
 import { createRoutine } from '@/app/routine/actions'
 
 type Exercise = { id: string; name: string; category: string; muscle_group: string }
+type PlannedSet = { reps: number; weight: number; weight_unit: string }
 
 function illustrationFor(name: string): string {
   const n = name.toLowerCase()
@@ -26,6 +27,8 @@ export default function NewRoutinePage() {
   const [isPending, startTransition] = useTransition()
   const [name, setName] = useState('')
   const [exercises, setExercises] = useState<Exercise[]>([])
+  const [plannedSets, setPlannedSets] = useState<Record<string, PlannedSet[]>>({})
+  const [setInputs, setSetInputs] = useState<Record<string, { reps: string; weight: string }>>({})
 
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -63,12 +66,34 @@ export default function NewRoutinePage() {
   function addExercise(ex: Exercise) {
     if (!exercises.some(e => e.id === ex.id)) {
       setExercises(prev => [...prev, ex])
+      setSetInputs(prev => ({ ...prev, [ex.id]: { reps: '', weight: '' } }))
     }
     closeSearch()
   }
 
   function removeExercise(id: string) {
     setExercises(prev => prev.filter(e => e.id !== id))
+    setPlannedSets(prev => { const n = { ...prev }; delete n[id]; return n })
+    setSetInputs(prev => { const n = { ...prev }; delete n[id]; return n })
+  }
+
+  function handleAddPlannedSet(exerciseId: string) {
+    const { reps: repsStr, weight: weightStr } = setInputs[exerciseId] ?? {}
+    const reps = parseInt(repsStr)
+    const weight = parseFloat(weightStr)
+    if (!reps || !weight) return
+    setPlannedSets(prev => ({
+      ...prev,
+      [exerciseId]: [...(prev[exerciseId] ?? []), { reps, weight, weight_unit: 'kg' }],
+    }))
+    setSetInputs(prev => ({ ...prev, [exerciseId]: { reps: '', weight: '' } }))
+  }
+
+  function removePlannedSet(exerciseId: string, index: number) {
+    setPlannedSets(prev => ({
+      ...prev,
+      [exerciseId]: prev[exerciseId].filter((_, i) => i !== index),
+    }))
   }
 
   async function handleCreateCustom() {
@@ -82,7 +107,10 @@ export default function NewRoutinePage() {
   function handleSubmit() {
     if (!name.trim() || exercises.length === 0) return
     startTransition(async () => {
-      await createRoutine(name.trim(), exercises.map(e => e.id))
+      await createRoutine(name.trim(), exercises.map(e => ({
+        id: e.id,
+        sets: plannedSets[e.id] ?? [],
+      })))
     })
   }
 
@@ -93,6 +121,14 @@ export default function NewRoutinePage() {
     background: 'var(--surface-2)', borderRadius: 'var(--r-md)',
     border: 'none', color: 'var(--text-primary)',
     fontSize: 16, fontFamily: 'inherit', outline: 'none',
+  }
+
+  const setInputStyle: React.CSSProperties = {
+    flex: 1, padding: '9px 12px',
+    background: 'var(--surface-2)', borderRadius: 'var(--r-md)',
+    border: 'none', color: 'var(--text-primary)',
+    fontSize: 14, fontWeight: 600, outline: 'none',
+    fontFamily: 'inherit',
   }
 
   return (
@@ -138,33 +174,96 @@ export default function NewRoutinePage() {
             </div>
 
             {exercises.length > 0 && (
-              <div className="forge-card-flush" style={{ marginBottom: 12 }}>
-                {exercises.map((ex, i) => (
-                  <div key={ex.id} className="forge-row" style={{ justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <ExerciseIllustration name={illustrationFor(ex.name)} size={26} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 }}>
+                {exercises.map((ex, i) => {
+                  const sets = plannedSets[ex.id] ?? []
+                  const inp = setInputs[ex.id] ?? { reps: '', weight: '' }
+                  return (
+                    <div key={ex.id} className="forge-card" style={{ padding: 0, overflow: 'hidden' }}>
+
+                      {/* Exercise header */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <ExerciseIllustration name={illustrationFor(ex.name)} size={26} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: 600, margin: 0, fontSize: 15 }}>{ex.name}</p>
+                          {ex.category && (
+                            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
+                              {ex.category}{ex.muscle_group ? ` · ${ex.muscle_group}` : ''}
+                            </p>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 500 }}>#{i + 1}</span>
+                          <button
+                            onClick={() => removeExercise(ex.id)}
+                            style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}
+                          >
+                            <ForgeIcon name="close" size={12} />
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <p style={{ fontWeight: 600, margin: 0, fontSize: 15 }}>{ex.name}</p>
-                        {ex.category && (
-                          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
-                            {ex.category}{ex.muscle_group ? ` · ${ex.muscle_group}` : ''}
-                          </p>
-                        )}
+
+                      {/* Planned sets list */}
+                      {sets.length > 0 && (
+                        <>
+                          <div style={{ display: 'grid', gridTemplateColumns: '28px 1fr 1fr 28px', gap: 8, padding: '6px 16px', borderTop: '0.5px solid var(--hairline)', fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            <span>#</span><span>Weight</span><span>Reps</span><span />
+                          </div>
+                          {sets.map((s, j) => (
+                            <div key={j} style={{ display: 'grid', gridTemplateColumns: '28px 1fr 1fr 28px', gap: 8, padding: '8px 16px', alignItems: 'center', borderTop: '0.5px solid var(--hairline)' }}>
+                              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
+                                {j + 1}
+                              </div>
+                              <span style={{ fontWeight: 600, fontSize: 14 }}>
+                                {s.weight} <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 500 }}>kg</span>
+                              </span>
+                              <span style={{ fontWeight: 600, fontSize: 14 }}>
+                                {s.reps} <span style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 500 }}>reps</span>
+                              </span>
+                              <button
+                                onClick={() => removePlannedSet(ex.id, j)}
+                                style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}
+                              >
+                                <ForgeIcon name="close" size={10} />
+                              </button>
+                            </div>
+                          ))}
+                        </>
+                      )}
+
+                      {/* Add set row */}
+                      <div style={{ display: 'flex', gap: 8, padding: '10px 16px', borderTop: '0.5px solid var(--hairline)', alignItems: 'center' }}>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          placeholder="kg"
+                          value={inp.weight}
+                          onChange={e => setSetInputs(prev => ({ ...prev, [ex.id]: { ...prev[ex.id], weight: e.target.value } }))}
+                          onKeyDown={e => { if (e.key === 'Enter') handleAddPlannedSet(ex.id) }}
+                          style={setInputStyle}
+                        />
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          placeholder="reps"
+                          value={inp.reps}
+                          onChange={e => setSetInputs(prev => ({ ...prev, [ex.id]: { ...prev[ex.id], reps: e.target.value } }))}
+                          onKeyDown={e => { if (e.key === 'Enter') handleAddPlannedSet(ex.id) }}
+                          style={setInputStyle}
+                        />
+                        <button
+                          onClick={() => handleAddPlannedSet(ex.id)}
+                          style={{ padding: '9px 16px', flexShrink: 0, background: 'var(--surface-3)', color: 'var(--text-primary)', borderRadius: 'var(--r-md)', fontWeight: 700, fontSize: 13 }}
+                        >
+                          + Set
+                        </button>
                       </div>
+
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 500 }}>#{i + 1}</span>
-                      <button
-                        onClick={() => removeExercise(ex.id)}
-                        style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}
-                      >
-                        <ForgeIcon name="close" size={12} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 

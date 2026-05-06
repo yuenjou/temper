@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import NavBar from '@/components/NavBar'
 import ForgeIcon from '@/components/ForgeIcon'
+import ProfileInfo from './ProfileInfo'
 
 function calculateStreak(finishedAts: string[]): number {
   if (finishedAts.length === 0) return 0
@@ -35,6 +36,7 @@ export default async function ProfilePage() {
     { count: prCount },
     { count: measurementCount },
     { data: finishedWorkouts },
+    { data: profileData },
   ] = await Promise.all([
     supabase
       .from('workouts')
@@ -54,6 +56,11 @@ export default async function ProfilePage() {
       .eq('user_id', user.id)
       .not('finished_at', 'is', null)
       .order('finished_at', { ascending: false }),
+    supabase
+      .from('user_profiles')
+      .select('height, height_unit, date_of_birth')
+      .eq('user_id', user.id)
+      .maybeSingle(),
   ])
 
   const finishedAts = (finishedWorkouts ?? []).map(w => w.finished_at as string)
@@ -100,6 +107,11 @@ export default async function ProfilePage() {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Physical Info */}
+        <section style={{ padding: '0 20px 20px' }}>
+          <ProfileInfo profile={profileData ?? null} />
         </section>
 
         {/* Stats Grid */}

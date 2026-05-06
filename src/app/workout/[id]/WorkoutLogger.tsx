@@ -23,6 +23,7 @@ type Props = {
   workoutId: string
   workoutName: string | null
   initialExercises: Exercise[]
+  initialSets: Record<string, WorkoutSet[]>
 }
 
 function illustrationFor(name: string): string {
@@ -42,11 +43,11 @@ function formatTime(s: number): string {
   return `${m}:${String(sec).padStart(2, '0')}`
 }
 
-export default function WorkoutLogger({ workoutId, workoutName, initialExercises }: Props) {
+export default function WorkoutLogger({ workoutId, workoutName, initialExercises, initialSets }: Props) {
   const router = useRouter()
 
   const [entries, setEntries] = useState<ExerciseEntry[]>(() =>
-    initialExercises.map(ex => ({ ...ex, sets: [] }))
+    initialExercises.map(ex => ({ ...ex, sets: initialSets[ex.id] ?? [] }))
   )
   const [inputs, setInputs] = useState<Record<string, { reps: string; weight: string }>>(() =>
     Object.fromEntries(initialExercises.map(ex => [ex.id, { reps: '', weight: '' }]))

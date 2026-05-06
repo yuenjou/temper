@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import MeasurementForm from './MeasurementForm'
 import NavBar from '@/components/NavBar'
+import BodyweightChart from './BodyweightChart'
 
 type Measurement = {
   id: string
@@ -89,6 +90,11 @@ export default async function MeasurementsPage() {
                         weekday: 'short', month: 'short', day: 'numeric',
                       })}
                     </p>
+                    {type === 'bodyweight' && entries.length >= 2 && (
+                      <div style={{ margin: '0 0 12px', borderTop: '0.5px solid var(--hairline)', paddingTop: 12 }}>
+                        <BodyweightChart entries={entries.map(m => ({ value: m.value, recorded_at: m.recorded_at }))} />
+                      </div>
+                    )}
                     {prior.length > 0 && (
                       <details style={{ fontSize: 14 }}>
                         <summary style={{ color: 'var(--text-tertiary)', cursor: 'pointer', userSelect: 'none', listStyle: 'none' }}>
