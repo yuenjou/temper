@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import MeasurementForm from './MeasurementForm'
+import MeasurementHistory from './MeasurementHistory'
 import NavBar from '@/components/NavBar'
-import BodyweightChart from './BodyweightChart'
 
 type Measurement = {
   id: string
@@ -11,16 +11,6 @@ type Measurement = {
   unit: string
   recorded_at: string
 }
-
-const TYPE_LABELS: Record<string, string> = {
-  bodyweight: 'Bodyweight',
-  body_fat: 'Body Fat',
-  waist: 'Waist',
-  chest: 'Chest',
-  arms: 'Arms',
-}
-
-const TYPES_ORDER = ['bodyweight', 'body_fat', 'waist', 'chest', 'arms']
 
 export default async function MeasurementsPage() {
   const supabase = await createClient()
@@ -40,8 +30,6 @@ export default async function MeasurementsPage() {
     grouped[m.type].push(m)
   }
 
-  const types = TYPES_ORDER.filter(t => grouped[t])
-
   return (
     <>
       <NavBar />
@@ -59,66 +47,7 @@ export default async function MeasurementsPage() {
 
         {/* History */}
         <section style={{ padding: '0 20px 20px' }}>
-          {types.length === 0 ? (
-            <div style={{
-              background: 'var(--surface-1)', borderRadius: 'var(--r-lg)',
-              boxShadow: 'var(--shadow-card)', padding: '32px 20px', textAlign: 'center',
-            }}>
-              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>No measurements yet</p>
-              <p style={{ color: 'var(--text-tertiary)', fontSize: 14, margin: '4px 0 0' }}>Log your first one above!</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {types.map(type => {
-                const entries = grouped[type]
-                const latest = entries[0]
-                const prior = entries.slice(1)
-                return (
-                  <div key={type} style={{
-                    background: 'var(--surface-1)', borderRadius: 'var(--r-lg)',
-                    boxShadow: 'var(--shadow-card)', padding: 20,
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                      <h2 style={{ fontWeight: 600, fontSize: 16, margin: 0 }}>{TYPE_LABELS[type] ?? type}</h2>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: 28, fontWeight: 700 }}>{latest.value}</span>
-                        <span style={{ color: 'var(--text-tertiary)', marginLeft: 4, fontSize: 14 }}>{latest.unit}</span>
-                      </div>
-                    </div>
-                    <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '0 0 12px' }}>
-                      {new Date(latest.recorded_at).toLocaleDateString(undefined, {
-                        weekday: 'short', month: 'short', day: 'numeric',
-                      })}
-                    </p>
-                    {type === 'bodyweight' && entries.length >= 2 && (
-                      <div style={{ margin: '0 0 12px', borderTop: '0.5px solid var(--hairline)', paddingTop: 12 }}>
-                        <BodyweightChart entries={entries.map(m => ({ value: m.value, recorded_at: m.recorded_at }))} />
-                      </div>
-                    )}
-                    {prior.length > 0 && (
-                      <details style={{ fontSize: 14 }}>
-                        <summary style={{ color: 'var(--text-tertiary)', cursor: 'pointer', userSelect: 'none', listStyle: 'none' }}>
-                          {prior.length} prior {prior.length === 1 ? 'entry' : 'entries'}
-                        </summary>
-                        <div style={{ marginTop: 10, borderTop: '0.5px solid var(--hairline)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {prior.map(m => (
-                            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                              <span>
-                                {new Date(m.recorded_at).toLocaleDateString(undefined, {
-                                  month: 'short', day: 'numeric',
-                                })}
-                              </span>
-                              <span>{m.value} {m.unit}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          <MeasurementHistory grouped={grouped} />
         </section>
 
       </main>
