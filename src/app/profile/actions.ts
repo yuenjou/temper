@@ -11,6 +11,7 @@ export async function signOut() {
 }
 
 export async function upsertProfile(data: {
+  display_name?: string | null
   height: number | null
   height_unit: string
   date_of_birth: string | null
@@ -21,6 +22,7 @@ export async function upsertProfile(data: {
 
   await supabase.from('user_profiles').upsert({
     user_id: user.id,
+    display_name: data.display_name ?? null,
     height: data.height,
     height_unit: data.height_unit,
     date_of_birth: data.date_of_birth,

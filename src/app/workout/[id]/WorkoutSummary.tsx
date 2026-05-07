@@ -163,14 +163,26 @@ function SummarySetRow({
   )
 }
 
+function fmtDuration(startedAt: string, finishedAt: string): string {
+  const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime()
+  const totalMins = Math.floor(ms / 60000)
+  if (totalMins >= 60) {
+    const h = Math.floor(totalMins / 60)
+    const m = totalMins % 60
+    return `${h}h ${m}m`
+  }
+  return `${totalMins}m`
+}
+
 type Props = {
   workoutId: string
   workoutName: string | null
   startedAt: string
+  finishedAt: string
   initialEntries: ExerciseEntry[]
 }
 
-export default function WorkoutSummary({ workoutId, workoutName, startedAt, initialEntries }: Props) {
+export default function WorkoutSummary({ workoutId, workoutName, startedAt, finishedAt, initialEntries }: Props) {
   const router = useRouter()
   const [entries, setEntries] = useState(initialEntries)
   const [deleting, setDeleting] = useState(false)
@@ -223,6 +235,10 @@ export default function WorkoutSummary({ workoutId, workoutName, startedAt, init
 
         {/* Stats */}
         <div style={{ padding: '20px 24px 0', display: 'flex', gap: 24 }}>
+          <div>
+            <p className="forge-eyebrow" style={{ marginBottom: 2 }}>Duration</p>
+            <p style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>{fmtDuration(startedAt, finishedAt)}</p>
+          </div>
           <div>
             <p className="forge-eyebrow" style={{ marginBottom: 2 }}>Exercises</p>
             <p style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', margin: 0 }}>{entries.length}</p>

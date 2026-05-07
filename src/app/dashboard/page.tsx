@@ -74,7 +74,17 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [{ data: recentWorkouts }, { data: finishedWorkouts }] = await Promise.all([
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const dayStart = `${todayStr}T00:00:00.000Z`
+  const dayEnd = `${todayStr}T23:59:59.999Z`
+
+  const [
+    { data: recentWorkouts },
+    { data: finishedWorkouts },
+    { data: todayFoodRaw },
+    { data: targetsRaw },
+    { data: profileData },
+  ] = await Promise.all([
     supabase
       .from('workouts')
       .select('id, name, started_at, finished_at')
@@ -87,7 +97,27 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .not('finished_at', 'is', null)
       .order('finished_at', { ascending: false }),
+    supabase
+      .from('food_entries')
+      .select('calories')
+      .eq('user_id', user.id)
+      .gte('logged_at', dayStart)
+      .lte('logged_at', dayEnd),
+    supabase
+      .from('daily_targets')
+      .select('calories')
+      .eq('user_id', user.id)
+      .single(),
+    supabase
+      .from('user_profiles')
+      .select('display_name')
+      .eq('user_id', user.id)
+      .maybeSingle(),
   ])
+
+  const todayCalories = Math.round((todayFoodRaw ?? []).reduce((s, e) => s + e.calories, 0))
+  const calorieTarget = targetsRaw?.calories ?? 2000
+  const caloriePct = Math.min(1, todayCalories / calorieTarget)
 
   const finishedAts = (finishedWorkouts ?? []).map(w => w.finished_at as string)
   const streak = calculateStreak(finishedAts)
@@ -101,7 +131,7 @@ export default async function DashboardPage() {
   const todayLabel = `${dayNames[now.getDay()].toUpperCase()}, ${monthNames[now.getMonth()].toUpperCase()} ${now.getDate()}`
   const hour = now.getHours()
   const greeting = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,'
-  const emailPrefix = user.email?.split('@')[0] ?? 'Athlete'
+  const emailPrefix = profileData?.display_name || (user.email?.split('@')[0] ?? 'Athlete')
 
   return (
     <>
@@ -157,10 +187,31 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        {/* Coming Soon placeholders */}
+        {/* Stats cards */}
         <section style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <ComingSoon label="Readiness Score" icon="heart" />
-          <ComingSoon label="Today's Calories" icon="bolt" />
+          <Link href="/food" style={{ textDecoration: 'none' }}>
+            <div className="forge-card" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <ForgeIcon name="bolt" size={18} color="var(--accent)" />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 7 }}>
+                  <span style={{ fontSize: 15, fontWeight: 600 }}>Today&apos;s Calories</span>
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>
+                    {todayCalories}
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 500 }}>/{calorieTarget}</span>
+                  </span>
+                </div>
+                <div style={{ height: 4, background: 'var(--surface-2)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${caloriePct * 100}%`,
+                    background: caloriePct >= 1 ? 'var(--green)' : 'var(--accent)',
+                    borderRadius: 2,
+                  }} />
+                </div>
+              </div>
+            </div>
+          </Link>
           <ComingSoon label="Workout of the Day" icon="dumbbell" />
         </section>
 

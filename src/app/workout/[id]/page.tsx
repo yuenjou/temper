@@ -68,6 +68,7 @@ export default async function WorkoutPage({
         workoutId={workout.id}
         workoutName={workout.name}
         startedAt={workout.started_at}
+        finishedAt={workout.finished_at}
         initialEntries={[...exerciseMap.values()]}
       />
     )
@@ -114,6 +115,7 @@ export default async function WorkoutPage({
     <WorkoutLogger
       workoutId={workout.id}
       workoutName={workout.name}
+      startedAt={workout.started_at}
       initialExercises={initialExercises}
       initialSets={initialSets}
       initialPrevSets={initialPrevSets}

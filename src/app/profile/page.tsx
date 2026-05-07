@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import NavBar from '@/components/NavBar'
 import ForgeIcon from '@/components/ForgeIcon'
-import ProfileInfo from './ProfileInfo'
+import ProfileCard from './ProfileCard'
 import GoalsCard from './GoalsCard'
 import BodyweightChart from '@/app/measurements/BodyweightChart'
 import ExerciseIllustration from '@/components/ExerciseIllustration'
@@ -90,7 +90,6 @@ export default async function ProfilePage() {
 
   const [
     { count: workoutCount },
-    { count: prCount },
     { data: finishedWorkouts },
     { data: profileData },
     { data: prs },
@@ -98,9 +97,8 @@ export default async function ProfilePage() {
     { data: targetsData },
   ] = await Promise.all([
     supabase.from('workouts').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-    supabase.from('personal_records').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('workouts').select('finished_at').eq('user_id', user.id).not('finished_at', 'is', null).order('finished_at', { ascending: false }),
-    supabase.from('user_profiles').select('height, height_unit, date_of_birth').eq('user_id', user.id).maybeSingle(),
+    supabase.from('user_profiles').select('display_name, height, height_unit, date_of_birth').eq('user_id', user.id).maybeSingle(),
     supabase.from('personal_records').select('id, exercise_id, reps, weight, weight_unit, achieved_at, exercises(name)').eq('user_id', user.id).order('achieved_at', { ascending: false }).limit(8),
     supabase.from('measurements').select('value, recorded_at').eq('user_id', user.id).eq('type', 'bodyweight').order('recorded_at', { ascending: true }),
     supabase.from('daily_targets').select('calories, protein, carbs, fat, goal_type').eq('user_id', user.id).maybeSingle(),
@@ -114,7 +112,6 @@ export default async function ProfilePage() {
 
   const email = user.email ?? ''
   const emailPrefix = email.split('@')[0]
-  const initials = emailPrefix.charAt(0).toUpperCase()
 
   return (
     <>
@@ -128,32 +125,11 @@ export default async function ProfilePage() {
 
         {/* Profile Card */}
         <section style={{ padding: '0 20px 20px' }}>
-          <div className="forge-card" style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-            <div style={{
-              width: 64, height: 64, borderRadius: '50%', flexShrink: 0,
-              background: 'linear-gradient(135deg, var(--accent) 0%, #ff8a80 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 28, fontWeight: 700, color: '#fff',
-            }}>
-              {initials}
-            </div>
-            <div>
-              <p style={{ fontWeight: 700, fontSize: 18, margin: 0 }}>{emailPrefix}</p>
-              <p style={{ color: 'var(--text-tertiary)', fontSize: 13, margin: '3px 0 0' }}>{email}</p>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                marginTop: 8, padding: '3px 10px',
-                background: 'var(--accent-soft)', borderRadius: 'var(--r-pill)',
-              }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', letterSpacing: '0.02em' }}>Member</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Physical Info */}
-        <section style={{ padding: '0 20px 20px' }}>
-          <ProfileInfo profile={profileData ?? null} />
+          <ProfileCard
+            profile={profileData ?? null}
+            emailPrefix={emailPrefix}
+            email={email}
+          />
         </section>
 
         {/* Goals */}
@@ -163,14 +139,10 @@ export default async function ProfilePage() {
         </section>
 
         {/* Stats Grid */}
-        <section style={{ padding: '0 20px 20px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <section style={{ padding: '0 20px 20px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
           <div className="forge-card" style={{ padding: 14, textAlign: 'center' }}>
             <p style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>{workoutCount ?? 0}</p>
             <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', margin: '4px 0 0' }}>Workouts</p>
-          </div>
-          <div className="forge-card" style={{ padding: 14, textAlign: 'center' }}>
-            <p style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>{prCount ?? 0}</p>
-            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', margin: '4px 0 0' }}>PRs</p>
           </div>
           <div className="forge-card" style={{ padding: 14, textAlign: 'center' }}>
             <p style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>{streak}</p>

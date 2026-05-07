@@ -23,6 +23,7 @@ type PrevSet = { reps: number; weight: number; weight_unit: string }
 type Props = {
   workoutId: string
   workoutName: string | null
+  startedAt: string
   initialExercises: Exercise[]
   initialSets: Record<string, WorkoutSet[]>
   initialPrevSets: Record<string, PrevSet>
@@ -160,20 +161,21 @@ function SetRow({
           userSelect: 'none', touchAction: 'pan-y', WebkitUserSelect: 'none',
         }}
       >
-        {/* Completion toggle (tap the number) */}
+        {/* Completion toggle */}
         <button
           onClick={onToggleComplete}
           style={{
             width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-            background: completed ? 'var(--green)' : 'var(--surface-2)',
+            background: completed ? 'var(--green)' : 'transparent',
+            border: completed ? 'none' : '1.5px solid var(--text-tertiary)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'background 0.2s ease, transform 0.15s ease',
+            transition: 'background 0.2s ease, border-color 0.2s ease, transform 0.15s ease',
             transform: completed ? 'scale(1.08)' : 'scale(1)',
           }}
         >
           {completed
             ? <ForgeIcon name="check" size={12} color="#fff" strokeWidth={2.5} />
-            : <span style={{ fontSize: 12, fontWeight: 700 }}>{setNum}</span>
+            : <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)' }}>{setNum}</span>
           }
         </button>
 
@@ -265,6 +267,7 @@ function RestTimer({ seconds, onDismiss }: { seconds: number; onDismiss: () => v
 export default function WorkoutLogger({
   workoutId,
   workoutName,
+  startedAt,
   initialExercises,
   initialSets,
   initialPrevSets,
@@ -282,7 +285,9 @@ export default function WorkoutLogger({
   const [exerciseNotes, setExerciseNotes] = useState<Record<string, string>>({})
   const [prevSetsState, setPrevSetsState] = useState<Record<string, PrevSet>>(initialPrevSets)
   const [activeExIdx, setActiveExIdx] = useState(0)
-  const [elapsed, setElapsed] = useState(0)
+  const [elapsed, setElapsed] = useState(() =>
+    Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000))
+  )
   const [restSeconds, setRestSeconds] = useState<number | null>(null)
 
   const [inputErrors, setInputErrors] = useState<Record<string, string | null>>({})
@@ -587,14 +592,14 @@ export default function WorkoutLogger({
                       )}
                     </p>
                   )}
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
                     <input
                       type="number"
                       inputMode="decimal"
                       placeholder={prevHint ? String(prevHint.weight) : 'kg'}
                       value={inputs[activeEntry.id]?.weight ?? ''}
                       onChange={e => setInput(activeEntry.id, 'weight', e.target.value)}
-                      style={inputStyle}
+                      style={{ ...inputStyle, minWidth: 0 }}
                     />
                     <input
                       type="number"
@@ -602,20 +607,20 @@ export default function WorkoutLogger({
                       placeholder={prevHint ? String(prevHint.reps) : 'reps'}
                       value={inputs[activeEntry.id]?.reps ?? ''}
                       onChange={e => setInput(activeEntry.id, 'reps', e.target.value)}
-                      style={inputStyle}
+                      style={{ ...inputStyle, minWidth: 0 }}
                     />
-                    <button
-                      onClick={() => handleAddSet(activeEntry.id)}
-                      style={{
-                        padding: '11px 20px', flexShrink: 0,
-                        background: 'var(--accent)', color: '#fff',
-                        borderRadius: 'var(--r-md)', fontWeight: 700, fontSize: 15,
-                        transition: 'background 0.15s ease',
-                      }}
-                    >
-                      Add
-                    </button>
                   </div>
+                  <button
+                    onClick={() => handleAddSet(activeEntry.id)}
+                    style={{
+                      width: '100%', padding: '13px',
+                      background: 'var(--accent)', color: '#fff',
+                      borderRadius: 'var(--r-md)', fontWeight: 700, fontSize: 15,
+                      transition: 'background 0.15s ease',
+                    }}
+                  >
+                    Add Set
+                  </button>
                   {inputErrors[activeEntry.id] && (
                     <p style={{ fontSize: 12, color: 'var(--accent)', margin: '2px 0 0', paddingLeft: 2 }}>
                       {inputErrors[activeEntry.id]}
