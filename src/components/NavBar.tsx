@@ -4,10 +4,11 @@ import { usePathname } from 'next/navigation'
 import ForgeIcon from './ForgeIcon'
 
 const TABS = [
-  { href: '/dashboard', label: 'Home', icon: 'home', match: '/dashboard' },
+  { href: '/dashboard', label: 'Home', icon: 'spark', match: '/dashboard' },
   { href: '/workout/new', label: 'Workout', icon: 'dumbbell', match: '/workout' },
   { href: '/food', label: 'Food', icon: 'apple', match: '/food' },
-  { href: '/profile', label: 'Profile', icon: 'profile', match: '/profile' },
+  { href: '/stats', label: 'Stats', icon: 'bar-chart', match: '/stats' },
+  { href: '/profile', label: 'Profile', icon: 'person', match: '/profile' },
 ]
 
 export default function NavBar() {
@@ -22,7 +23,7 @@ export default function NavBar() {
       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
       paddingBottom: 'env(safe-area-inset-bottom)',
     }}>
-      <div className="forge-main" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
+      <div className="forge-main" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)' }}>
         {TABS.map(({ href, label, icon, match }) => {
           const active = pathname === match || pathname.startsWith(match + '/')
           return (

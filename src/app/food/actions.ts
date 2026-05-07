@@ -12,6 +12,7 @@ type FoodEntryInput = {
   carbs: number
   fat: number
   meal_type: MealType
+  logged_at?: string
 }
 
 export async function addFoodEntry(data: FoodEntryInput) {
@@ -27,8 +28,31 @@ export async function addFoodEntry(data: FoodEntryInput) {
     carbs: data.carbs,
     fat: data.fat,
     meal_type: data.meal_type,
-    logged_at: new Date().toISOString(),
+    logged_at: data.logged_at ?? new Date().toISOString(),
   })
+
+  if (error) throw error
+  revalidatePath('/food')
+}
+
+export async function updateFoodEntry(id: string, data: Required<FoodEntryInput>) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { error } = await supabase
+    .from('food_entries')
+    .update({
+      name: data.name,
+      calories: data.calories,
+      protein: data.protein,
+      carbs: data.carbs,
+      fat: data.fat,
+      meal_type: data.meal_type,
+      logged_at: data.logged_at,
+    })
+    .eq('id', id)
+    .eq('user_id', user.id)
 
   if (error) throw error
   revalidatePath('/food')

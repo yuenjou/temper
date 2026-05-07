@@ -38,6 +38,9 @@ export default function ForgeIcon({ name, size = 22, color = 'currentColor', str
     case 'water': return <svg {...p}><path d="M12 2L6 10a6 6 0 1 0 12 0L12 2z" /></svg>
     case 'pencil': return <svg {...p}><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
     case 'trash': return <svg {...p}><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" /></svg>
+    case 'spark': return <svg {...p}><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4L12 2z" /></svg>
+    case 'bar-chart': return <svg {...p}><path d="M3 20h18M5 20V13M9 20V8M13 20V11M17 20V5M21 20V9" /></svg>
+    case 'person': return <svg {...p}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
     default: return null
   }
 }

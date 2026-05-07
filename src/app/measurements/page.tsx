@@ -22,7 +22,6 @@ export default async function MeasurementsPage() {
     .select('id, type, value, unit, recorded_at')
     .eq('user_id', user.id)
     .order('recorded_at', { ascending: false })
-    .order('created_at', { ascending: false })
 
   const grouped: Record<string, Measurement[]> = {}
   for (const m of (data ?? []) as Measurement[]) {

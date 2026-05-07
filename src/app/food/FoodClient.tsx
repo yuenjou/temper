@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import ForgeIcon from '@/components/ForgeIcon'
-import { addFoodEntry, deleteFoodEntry, saveFavourite, deleteFavourite } from './actions'
+import { addFoodEntry, deleteFoodEntry, updateFoodEntry, saveFavourite, deleteFavourite } from './actions'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -81,9 +81,36 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function nowTimeStr(): string {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function isoToLocalTime(iso: string): string {
+  const d = new Date(iso)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function timeStrToIso(timeStr: string, baseIso?: string): string {
+  const base = baseIso ? new Date(baseIso) : new Date()
+  const [h, m] = timeStr.split(':').map(Number)
+  return new Date(base.getFullYear(), base.getMonth(), base.getDate(), h, m, 0).toISOString()
+}
+
+function formatTime(iso: string): string {
+  const d = new Date(iso)
+  const h = d.getHours()
+  const m = d.getMinutes()
+  const ampm = h >= 12 ? 'pm' : 'am'
+  const h12 = h % 12 || 12
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
 // ─── FoodEntryRow ─────────────────────────────────────────────────────────────
 
-function FoodEntryRow({ entry, onDelete }: { entry: FoodEntry; onDelete: () => void }) {
+function FoodEntryRow({ entry, onDelete, onEdit }: { entry: FoodEntry; onDelete: () => void; onEdit: () => void }) {
   const DELETE_W = 72
   const [offset, setOffset] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -92,12 +119,14 @@ function FoodEntryRow({ entry, onDelete }: { entry: FoodEntry; onDelete: () => v
   const startY = useRef(0)
   const baseOffset = useRef(0)
   const directionLocked = useRef<'h' | 'v' | null>(null)
+  const didDragRef = useRef(false)
 
   function handleTouchStart(e: React.TouchEvent) {
     startX.current = e.touches[0].clientX
     startY.current = e.touches[0].clientY
     baseOffset.current = revealed ? -DELETE_W : 0
     directionLocked.current = null
+    didDragRef.current = false
     setDragging(false)
   }
 
@@ -108,7 +137,10 @@ function FoodEntryRow({ entry, onDelete }: { entry: FoodEntry; onDelete: () => v
     if (!directionLocked.current) {
       if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
         directionLocked.current = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v'
-        if (directionLocked.current === 'h') setDragging(true)
+        if (directionLocked.current === 'h') {
+          setDragging(true)
+          didDragRef.current = true
+        }
       }
       return
     }
@@ -126,6 +158,18 @@ function FoodEntryRow({ entry, onDelete }: { entry: FoodEntry; onDelete: () => v
     } else {
       setOffset(0)
       setRevealed(false)
+    }
+  }
+
+  function handleRowClick() {
+    const wasDrag = didDragRef.current
+    didDragRef.current = false
+    if (wasDrag) return
+    if (revealed) {
+      setOffset(0)
+      setRevealed(false)
+    } else {
+      onEdit()
     }
   }
 
@@ -150,6 +194,7 @@ function FoodEntryRow({ entry, onDelete }: { entry: FoodEntry; onDelete: () => v
 
       {/* Row */}
       <div
+        onClick={handleRowClick}
         style={{
           transform: `translateX(${offset}px)`,
           transition: dragging ? 'none' : 'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
@@ -159,6 +204,7 @@ function FoodEntryRow({ entry, onDelete }: { entry: FoodEntry; onDelete: () => v
           userSelect: 'none',
           touchAction: 'pan-y',
           WebkitUserSelect: 'none',
+          cursor: 'pointer',
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -168,11 +214,10 @@ function FoodEntryRow({ entry, onDelete }: { entry: FoodEntry; onDelete: () => v
           <p style={{ margin: 0, fontWeight: 600, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {entry.name}
           </p>
-          {hasMacros && (
-            <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-tertiary)' }}>
-              P {Math.round(entry.protein)}g · C {Math.round(entry.carbs)}g · F {Math.round(entry.fat)}g
-            </p>
-          )}
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-tertiary)' }}>
+            {hasMacros && `P ${Math.round(entry.protein)}g · C ${Math.round(entry.carbs)}g · F ${Math.round(entry.fat)}g · `}
+            {formatTime(entry.logged_at)}
+          </p>
         </div>
         <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', marginLeft: 12, flexShrink: 0 }}>
           {Math.round(entry.calories)} kcal
@@ -291,9 +336,10 @@ type MealCardProps = {
   entries: FoodEntry[]
   onAdd: (meal: MealType) => void
   onDelete: (id: string) => void
+  onEdit: (entry: FoodEntry) => void
 }
 
-function MealCard({ meal, entries, onAdd, onDelete }: MealCardProps) {
+function MealCard({ meal, entries, onAdd, onDelete, onEdit }: MealCardProps) {
   const [collapsed, setCollapsed] = useState(false)
   const mealTotal = entries.reduce((s, e) => s + Number(e.calories), 0)
 
@@ -330,6 +376,7 @@ function MealCard({ meal, entries, onAdd, onDelete }: MealCardProps) {
               key={entry.id}
               entry={entry}
               onDelete={() => onDelete(entry.id)}
+              onEdit={() => onEdit(entry)}
             />
           ))}
           {/* Add food row */}
@@ -503,6 +550,7 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
   const [sheetMounted, setSheetMounted] = useState(false)
   const [sheetVisible, setSheetVisible] = useState(false)
   const [sheetMeal, setSheetMeal] = useState<MealType>('breakfast')
+  const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null)
 
   // Form state
   const [activeTab, setActiveTab] = useState<'recents' | 'favourites'>('recents')
@@ -512,6 +560,7 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
   const [formProtein, setFormProtein] = useState('')
   const [formCarbs, setFormCarbs] = useState('')
   const [formFat, setFormFat] = useState('')
+  const [formTime, setFormTime] = useState('')
   const [showMacros, setShowMacros] = useState(false)
   const [saveToFavs, setSaveToFavs] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -528,13 +577,13 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
     return () => { document.body.style.overflow = '' }
   }, [sheetMounted])
 
-  // Autofocus search when sheet slides in
+  // Autofocus search when sheet slides in (add mode only)
   useEffect(() => {
-    if (sheetVisible) {
+    if (sheetVisible && !editingEntry) {
       const t = setTimeout(() => searchRef.current?.focus(), 80)
       return () => clearTimeout(t)
     }
-  }, [sheetVisible])
+  }, [sheetVisible, editingEntry])
 
   // ── Computed ──────────────────────────────────────────────────────────────
 
@@ -552,11 +601,34 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  function openSheet(meal: MealType) {
-    setSheetMeal(meal)
+  function resetForm() {
     setSearch('')
     setFormName(''); setFormCalories(''); setFormProtein(''); setFormCarbs(''); setFormFat('')
+    setFormTime(nowTimeStr())
     setShowMacros(false); setSaveToFavs(false)
+    setActiveTab('recents')
+  }
+
+  function openSheet(meal: MealType) {
+    setEditingEntry(null)
+    setSheetMeal(meal)
+    resetForm()
+    setSheetMounted(true)
+    requestAnimationFrame(() => requestAnimationFrame(() => setSheetVisible(true)))
+  }
+
+  function openEditSheet(entry: FoodEntry) {
+    setEditingEntry(entry)
+    setSheetMeal(entry.meal_type)
+    setSearch('')
+    setFormName(entry.name)
+    setFormCalories(String(Math.round(entry.calories)))
+    setFormProtein(entry.protein > 0 ? String(Math.round(entry.protein)) : '')
+    setFormCarbs(entry.carbs > 0 ? String(Math.round(entry.carbs)) : '')
+    setFormFat(entry.fat > 0 ? String(Math.round(entry.fat)) : '')
+    setFormTime(isoToLocalTime(entry.logged_at))
+    setShowMacros(entry.protein > 0 || entry.carbs > 0 || entry.fat > 0)
+    setSaveToFavs(false)
     setActiveTab('recents')
     setSheetMounted(true)
     requestAnimationFrame(() => requestAnimationFrame(() => setSheetVisible(true)))
@@ -564,7 +636,7 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
 
   function closeSheet() {
     setSheetVisible(false)
-    setTimeout(() => setSheetMounted(false), 350)
+    setTimeout(() => { setSheetMounted(false); setEditingEntry(null) }, 350)
   }
 
   function fillFood(food: FoodRecent | FoodFavourite) {
@@ -580,7 +652,6 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
   function handleDelete(id: string) {
     setEntries(prev => prev.filter(e => e.id !== id))
     deleteFoodEntry(id).catch(() => {
-      // revert on failure
       setEntries(initialEntries)
     })
   }
@@ -599,32 +670,41 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
     if (!name || !calories || isNaN(calories)) return
     setSaving(true)
 
-    const entryData = {
-      name,
-      calories,
-      protein: parseFloat(formProtein || '0') || 0,
-      carbs: parseFloat(formCarbs || '0') || 0,
-      fat: parseFloat(formFat || '0') || 0,
-      meal_type: sheetMeal,
-    }
+    const protein = parseFloat(formProtein || '0') || 0
+    const carbs = parseFloat(formCarbs || '0') || 0
+    const fat = parseFloat(formFat || '0') || 0
+    const logged_at = timeStrToIso(formTime || nowTimeStr(), editingEntry?.logged_at)
 
-    const tempEntry: FoodEntry = { id: `temp_${Date.now()}`, ...entryData, logged_at: new Date().toISOString() }
-    setEntries(prev => [...prev, tempEntry])
-    closeSheet()
-    setSaving(false)
-
-    try {
-      await addFoodEntry(entryData)
-      if (saveToFavs) {
-        const { meal_type: _mt, ...favData } = entryData
-        await saveFavourite(favData)
+    if (editingEntry) {
+      const updated: FoodEntry = { ...editingEntry, name, calories, protein, carbs, fat, meal_type: sheetMeal, logged_at }
+      setEntries(prev => prev.map(e => e.id === editingEntry.id ? updated : e))
+      closeSheet()
+      setSaving(false)
+      try {
+        await updateFoodEntry(editingEntry.id, { name, calories, protein, carbs, fat, meal_type: sheetMeal, logged_at })
+      } catch {
+        setEntries(initialEntries)
       }
-    } catch {
-      setEntries(prev => prev.filter(e => e.id !== tempEntry.id))
+    } else {
+      const entryData = { name, calories, protein, carbs, fat, meal_type: sheetMeal, logged_at }
+      const tempEntry: FoodEntry = { id: `temp_${Date.now()}`, ...entryData }
+      setEntries(prev => [...prev, tempEntry])
+      closeSheet()
+      setSaving(false)
+      try {
+        await addFoodEntry(entryData)
+        if (saveToFavs) {
+          const { meal_type: _mt, logged_at: _la, ...favData } = entryData
+          await saveFavourite(favData)
+        }
+      } catch {
+        setEntries(prev => prev.filter(e => e.id !== tempEntry.id))
+      }
     }
   }
 
   const mealLabel = MEALS.find(m => m.key === sheetMeal)?.label ?? ''
+  const isEditing = editingEntry !== null
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -653,6 +733,7 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
             entries={entries.filter(e => e.meal_type === meal.key)}
             onAdd={openSheet}
             onDelete={handleDelete}
+            onEdit={openEditSheet}
           />
         ))}
       </section>
@@ -660,7 +741,7 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
       {/* Water */}
       <WaterTracker />
 
-      {/* Add Food Sheet */}
+      {/* Add / Edit Food Sheet */}
       {sheetMounted && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200 }}>
           {/* Backdrop */}
@@ -700,85 +781,94 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
 
             {/* Header */}
             <div style={{ padding: '14px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Add to {mealLabel}</h2>
+              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>
+                {isEditing ? `Edit ${mealLabel}` : `Add to ${mealLabel}`}
+              </h2>
               <button onClick={closeSheet} className="forge-icon-btn">
                 <ForgeIcon name="close" size={18} />
               </button>
             </div>
 
-            {/* Search */}
-            <div style={{ padding: '14px 20px 0', flexShrink: 0 }}>
-              <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                  <ForgeIcon name="search" size={16} color="var(--text-tertiary)" />
+            {/* Search (add mode only) */}
+            {!isEditing && (
+              <>
+                <div style={{ padding: '14px 20px 0', flexShrink: 0 }}>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                      <ForgeIcon name="search" size={16} color="var(--text-tertiary)" />
+                    </div>
+                    <input
+                      ref={searchRef}
+                      type="search"
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      placeholder="Search foods..."
+                      autoComplete="off"
+                      style={{ ...inputStyle, paddingLeft: 38 }}
+                    />
+                  </div>
                 </div>
-                <input
-                  ref={searchRef}
-                  type="search"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Search foods..."
-                  autoComplete="off"
-                  style={{ ...inputStyle, paddingLeft: 38 }}
-                />
-              </div>
-            </div>
 
-            {/* Tabs */}
-            <div style={{ padding: '12px 20px 0', display: 'flex', gap: 6, flexShrink: 0 }}>
-              {(['recents', 'favourites'] as const).map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  style={{
-                    padding: '6px 14px', borderRadius: 'var(--r-pill)', fontSize: 13, fontWeight: 600,
-                    background: activeTab === tab ? 'var(--accent)' : 'var(--surface-2)',
-                    color: activeTab === tab ? '#fff' : 'var(--text-secondary)',
-                    transition: 'background 0.15s ease, color 0.15s ease',
-                  }}
-                >
-                  {tab === 'recents' ? 'Recent' : 'Favourites'}
-                </button>
-              ))}
-            </div>
+                <div style={{ padding: '12px 20px 0', display: 'flex', gap: 6, flexShrink: 0 }}>
+                  {(['recents', 'favourites'] as const).map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      style={{
+                        padding: '6px 14px', borderRadius: 'var(--r-pill)', fontSize: 13, fontWeight: 600,
+                        background: activeTab === tab ? 'var(--accent)' : 'var(--surface-2)',
+                        color: activeTab === tab ? '#fff' : 'var(--text-secondary)',
+                        transition: 'background 0.15s ease, color 0.15s ease',
+                      }}
+                    >
+                      {tab === 'recents' ? 'Recent' : 'Favourites'}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
 
             {/* Scrollable content */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 32px' }} className="no-scrollbar">
 
-              {/* Results list */}
-              {filteredList.length > 0 ? (
-                <div style={{ paddingTop: 4 }}>
-                  {filteredList.map((item, i) => (
-                    <FoodListItem
-                      key={`${activeTab}-${i}`}
-                      food={item}
-                      onSelect={() => fillFood(item)}
-                      onDelete={activeTab === 'favourites' ? () => handleDeleteFavourite((item as FoodFavourite).id) : undefined}
-                      showDelete={activeTab === 'favourites'}
-                    />
-                  ))}
-                </div>
-              ) : search ? (
-                <p style={{ fontSize: 14, color: 'var(--text-tertiary)', padding: '14px 0 8px', margin: 0 }}>
-                  No matches — enter manually below
-                </p>
-              ) : (
-                <p style={{ fontSize: 14, color: 'var(--text-tertiary)', padding: '14px 0 8px', margin: 0 }}>
-                  {activeTab === 'recents' ? 'No recent foods yet' : 'No saved favourites yet'}
-                </p>
+              {/* Results list (add mode only) */}
+              {!isEditing && (
+                filteredList.length > 0 ? (
+                  <div style={{ paddingTop: 4 }}>
+                    {filteredList.map((item, i) => (
+                      <FoodListItem
+                        key={`${activeTab}-${i}`}
+                        food={item}
+                        onSelect={() => fillFood(item)}
+                        onDelete={activeTab === 'favourites' ? () => handleDeleteFavourite((item as FoodFavourite).id) : undefined}
+                        showDelete={activeTab === 'favourites'}
+                      />
+                    ))}
+                  </div>
+                ) : search ? (
+                  <p style={{ fontSize: 14, color: 'var(--text-tertiary)', padding: '14px 0 8px', margin: 0 }}>
+                    No matches — enter manually below
+                  </p>
+                ) : (
+                  <p style={{ fontSize: 14, color: 'var(--text-tertiary)', padding: '14px 0 8px', margin: 0 }}>
+                    {activeTab === 'recents' ? 'No recent foods yet' : 'No saved favourites yet'}
+                  </p>
+                )
               )}
 
-              {/* Divider */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0' }}>
-                <div style={{ flex: 1, height: '0.5px', background: 'var(--hairline)' }} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Manual entry
-                </span>
-                <div style={{ flex: 1, height: '0.5px', background: 'var(--hairline)' }} />
-              </div>
+              {/* Divider (add mode only) */}
+              {!isEditing && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0' }}>
+                  <div style={{ flex: 1, height: '0.5px', background: 'var(--hairline)' }} />
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Manual entry
+                  </span>
+                  <div style={{ flex: 1, height: '0.5px', background: 'var(--hairline)' }} />
+                </div>
+              )}
 
               {/* Form */}
-              <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: isEditing ? 16 : 0 }}>
                 {/* Name */}
                 <div>
                   <label style={labelStyle}>Name *</label>
@@ -869,31 +959,45 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
                   </div>
                 </div>
 
-                {/* Save to favourites toggle */}
-                <button
-                  type="button"
-                  onClick={() => setSaveToFavs(v => !v)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '10px 14px',
-                    background: saveToFavs ? 'rgba(255,159,10,0.1)' : 'var(--surface-2)',
-                    borderRadius: 'var(--r-md)',
-                    transition: 'background 0.15s ease',
-                  }}
-                >
-                  <ForgeIcon name="heart" size={16} color={saveToFavs ? 'var(--orange)' : 'var(--text-tertiary)'} />
-                  <span style={{ fontSize: 14, fontWeight: 500, color: saveToFavs ? 'var(--orange)' : 'var(--text-secondary)' }}>
-                    Save to favourites
-                  </span>
-                  <div style={{
-                    marginLeft: 'auto', width: 20, height: 20, borderRadius: '50%',
-                    background: saveToFavs ? 'var(--orange)' : 'var(--surface-3)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'background 0.15s ease',
-                  }}>
-                    {saveToFavs && <ForgeIcon name="check" size={11} color="#fff" strokeWidth={2.5} />}
-                  </div>
-                </button>
+                {/* Time eaten */}
+                <div>
+                  <label style={labelStyle}>Time eaten</label>
+                  <input
+                    type="time"
+                    value={formTime}
+                    onChange={e => setFormTime(e.target.value)}
+                    style={inputStyle}
+                    required
+                  />
+                </div>
+
+                {/* Save to favourites toggle (add mode only) */}
+                {!isEditing && (
+                  <button
+                    type="button"
+                    onClick={() => setSaveToFavs(v => !v)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 14px',
+                      background: saveToFavs ? 'rgba(255,159,10,0.1)' : 'var(--surface-2)',
+                      borderRadius: 'var(--r-md)',
+                      transition: 'background 0.15s ease',
+                    }}
+                  >
+                    <ForgeIcon name="heart" size={16} color={saveToFavs ? 'var(--orange)' : 'var(--text-tertiary)'} />
+                    <span style={{ fontSize: 14, fontWeight: 500, color: saveToFavs ? 'var(--orange)' : 'var(--text-secondary)' }}>
+                      Save to favourites
+                    </span>
+                    <div style={{
+                      marginLeft: 'auto', width: 20, height: 20, borderRadius: '50%',
+                      background: saveToFavs ? 'var(--orange)' : 'var(--surface-3)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'background 0.15s ease',
+                    }}>
+                      {saveToFavs && <ForgeIcon name="check" size={11} color="#fff" strokeWidth={2.5} />}
+                    </div>
+                  </button>
+                )}
 
                 {/* Submit */}
                 <button
@@ -902,7 +1006,7 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
                   disabled={saving || !formName.trim() || !formCalories}
                   style={{ opacity: saving || !formName.trim() || !formCalories ? 0.5 : 1 }}
                 >
-                  {saving ? 'Adding...' : `Add to ${mealLabel}`}
+                  {saving ? (isEditing ? 'Saving...' : 'Adding...') : (isEditing ? 'Save changes' : `Add to ${mealLabel}`)}
                 </button>
               </form>
             </div>

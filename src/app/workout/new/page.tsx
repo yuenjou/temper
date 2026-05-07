@@ -141,22 +141,6 @@ export default async function WorkoutNewPage() {
           )}
         </section>
 
-        {/* Routine Analysis - coming soon */}
-        <section style={{ padding: '0 20px 28px' }}>
-          <p className="forge-eyebrow" style={{ marginBottom: 12 }}>Routine Analysis</p>
-          <div className="forge-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <ForgeIcon name="chart" size={18} color="var(--text-tertiary)" />
-              <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-secondary)' }}>Muscle Group Heatmap</span>
-            </div>
-            <span style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-              background: 'var(--surface-2)', color: 'var(--text-tertiary)',
-              padding: '3px 8px', borderRadius: 'var(--r-pill)',
-            }}>Coming Soon</span>
-          </div>
-        </section>
-
         {/* Exercise Library */}
         <section style={{ padding: '0 20px 28px' }}>
           <p className="forge-eyebrow" style={{ marginBottom: 12 }}>Exercise Library</p>

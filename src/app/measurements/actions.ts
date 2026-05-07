@@ -21,6 +21,21 @@ export async function logMeasurement(
   revalidatePath('/measurements')
 }
 
+export async function updateMeasurement(id: string, value: number, recordedAt: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const { error } = await supabase
+    .from('measurements')
+    .update({ value, recorded_at: recordedAt })
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) throw error
+  revalidatePath('/measurements')
+}
+
 export async function deleteMeasurement(id: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
