@@ -4,6 +4,7 @@ import Link from 'next/link'
 import NavBar from '@/components/NavBar'
 import ForgeIcon from '@/components/ForgeIcon'
 import WorkoutHistory from '@/components/WorkoutHistory'
+import PendingButton from '@/components/PendingButton'
 import { createAndStartWorkout, startRoutineWorkout } from '@/app/routine/actions'
 
 type RoutineExercise = {
@@ -54,7 +55,7 @@ export default async function WorkoutNewPage() {
   return (
     <>
       <NavBar />
-      <main className="forge-main" style={{ minHeight: '100vh', paddingBottom: 120 }}>
+      <main className="forge-main page-enter" style={{ minHeight: '100vh', paddingBottom: 120 }}>
 
         {/* Header */}
         <section style={{ padding: '20px 24px 20px' }}>
@@ -64,10 +65,10 @@ export default async function WorkoutNewPage() {
         {/* Start Workout CTA */}
         <section style={{ padding: '0 20px 28px' }}>
           <form action={createAndStartWorkout}>
-            <button type="submit" className="forge-btn-primary">
+            <PendingButton className="forge-btn-primary">
               <ForgeIcon name="play" size={20} color="#fff" />
               Start Empty Workout
-            </button>
+            </PendingButton>
           </form>
         </section>
 
@@ -125,12 +126,15 @@ export default async function WorkoutNewPage() {
                           textDecoration: 'none', display: 'inline-flex', alignItems: 'center',
                         }}>Edit</Link>
                         <form action={startRoutineWorkout.bind(null, routine.id)}>
-                          <button type="submit" style={{
-                            padding: '9px 20px',
-                            background: 'var(--accent)', color: '#fff',
-                            borderRadius: 'var(--r-pill)', fontSize: 14, fontWeight: 600,
-                            cursor: 'pointer',
-                          }}>Start</button>
+                          <PendingButton
+                            pendingChildren={<><span className="forge-spinner" style={{ width: 14, height: 14, borderWidth: 1.5 }} />Starting</>}
+                            style={{
+                              padding: '9px 20px',
+                              background: 'var(--accent)', color: '#fff',
+                              borderRadius: 'var(--r-pill)', fontSize: 14, fontWeight: 600,
+                              display: 'inline-flex', alignItems: 'center', gap: 6,
+                            }}
+                          >Start</PendingButton>
                         </form>
                       </div>
                     </div>

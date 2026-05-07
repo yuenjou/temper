@@ -292,6 +292,8 @@ export default function WorkoutLogger({
 
   const [inputErrors, setInputErrors] = useState<Record<string, string | null>>({})
 
+  const [isFinishing, setIsFinishing] = useState(false)
+
   const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Exercise[]>([])
@@ -417,6 +419,8 @@ export default function WorkoutLogger({
   }
 
   async function handleFinish() {
+    if (isFinishing) return
+    setIsFinishing(true)
     await finishWorkout(workoutId)
     router.push('/dashboard')
   }
@@ -454,8 +458,16 @@ export default function WorkoutLogger({
             display: 'flex', alignItems: 'center', gap: 12,
             padding: '10px 16px',
           }}>
-            <button className="forge-icon-btn" onClick={handleFinish} aria-label="Finish workout">
-              <ForgeIcon name="check" size={20} />
+            <button
+              className="forge-icon-btn"
+              onClick={handleFinish}
+              disabled={isFinishing}
+              aria-label="Finish workout"
+              style={{ opacity: isFinishing ? 0.5 : 1, transition: 'opacity 0.15s ease' }}
+            >
+              {isFinishing
+                ? <span className="forge-spinner" style={{ width: 14, height: 14, borderWidth: 1.5, borderTopColor: 'var(--text-primary)', borderColor: 'rgba(255,255,255,0.2)' }} />
+                : <ForgeIcon name="check" size={20} />}
             </button>
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
               <div style={{
@@ -683,8 +695,15 @@ export default function WorkoutLogger({
           <button onClick={openSearch} className="forge-btn-secondary" style={{ flex: 1, fontSize: 15 }}>
             <ForgeIcon name="plus" size={18} /> Exercise
           </button>
-          <button onClick={handleFinish} className="forge-btn-primary" style={{ flex: 2 }}>
-            Finish Workout
+          <button
+            onClick={handleFinish}
+            disabled={isFinishing}
+            className="forge-btn-primary"
+            style={{ flex: 2, gap: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            {isFinishing
+              ? <><span className="forge-spinner" />Finishing…</>
+              : 'Finish Workout'}
           </button>
         </div>
       </div>
@@ -692,6 +711,7 @@ export default function WorkoutLogger({
       {/* Exercise search modal */}
       {showSearch && (
         <div
+          className="backdrop-enter"
           style={{
             position: 'fixed', inset: 0, zIndex: 50,
             background: 'rgba(0,0,0,0.6)',
@@ -701,6 +721,7 @@ export default function WorkoutLogger({
           onClick={closeSearch}
         >
           <div
+            className="sheet-enter"
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%', maxWidth: 540,

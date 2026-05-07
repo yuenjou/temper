@@ -96,7 +96,8 @@ export default async function DashboardPage() {
       .select('finished_at')
       .eq('user_id', user.id)
       .not('finished_at', 'is', null)
-      .order('finished_at', { ascending: false }),
+      .order('finished_at', { ascending: false })
+      .limit(365),
     supabase
       .from('food_entries')
       .select('calories')
@@ -136,7 +137,7 @@ export default async function DashboardPage() {
   return (
     <>
       <NavBar />
-      <main className="forge-main" style={{ minHeight: '100vh', paddingBottom: 120 }}>
+      <main className="forge-main page-enter" style={{ minHeight: '100vh', paddingBottom: 120 }}>
 
         {/* Header */}
         <section style={{ padding: '8px 24px 20px' }}>

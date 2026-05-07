@@ -31,14 +31,6 @@ function illustrationFor(name: string): string {
   return 'bench-press'
 }
 
-const MUSCLE_GROUPS = [
-  { name: 'Chest', pct: 0.28 },
-  { name: 'Back', pct: 0.22 },
-  { name: 'Legs', pct: 0.20 },
-  { name: 'Shoulders', pct: 0.15 },
-  { name: 'Arms', pct: 0.15 },
-]
-
 export default async function StatsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -51,15 +43,39 @@ export default async function StatsPage() {
     { data: bodyweightData },
   ] = await Promise.all([
     supabase.from('workouts').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-    supabase.from('workouts').select('finished_at').eq('user_id', user.id).not('finished_at', 'is', null).order('finished_at', { ascending: false }),
+    supabase.from('workouts').select('id, finished_at').eq('user_id', user.id).not('finished_at', 'is', null).order('finished_at', { ascending: false }),
     supabase.from('personal_records').select('id, exercise_id, reps, weight, weight_unit, achieved_at, exercises(name)').eq('user_id', user.id).order('achieved_at', { ascending: false }).limit(10),
     supabase.from('measurements').select('value, recorded_at').eq('user_id', user.id).eq('type', 'bodyweight').order('recorded_at', { ascending: true }),
   ])
 
-  const finishedAts = (finishedWorkouts ?? []).map(w => w.finished_at as string)
+  const finishedList = (finishedWorkouts ?? []) as { id: string; finished_at: string }[]
+  const finishedAts = finishedList.map(w => w.finished_at)
   const streak = calculateStreak(finishedAts)
   const typedPrs = (prs ?? []) as unknown as PR[]
   const bwEntries = (bodyweightData ?? []) as Measurement[]
+
+  const recentIds = finishedList.slice(0, 20).map(w => w.id)
+  const muscleGroups: { name: string; pct: number }[] = []
+  if (recentIds.length > 0) {
+    const { data: setRows } = await supabase
+      .from('sets')
+      .select('exercises(muscle_group)')
+      .in('workout_id', recentIds)
+
+    const counts: Record<string, number> = {}
+    for (const row of setRows ?? []) {
+      const mg = (row.exercises as unknown as { muscle_group: string } | null)?.muscle_group?.trim()
+      if (!mg) continue
+      counts[mg] = (counts[mg] ?? 0) + 1
+    }
+    const total = Object.values(counts).reduce((a, b) => a + b, 0)
+    if (total > 0) {
+      Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .forEach(([name, count]) => muscleGroups.push({ name, pct: count / total }))
+    }
+  }
 
   return (
     <>
@@ -151,24 +167,30 @@ export default async function StatsPage() {
         <section style={{ padding: '0 20px 20px' }}>
           <div className="forge-card">
             <p className="forge-eyebrow" style={{ marginBottom: 16 }}>Muscle Distribution</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {MUSCLE_GROUPS.map(({ name, pct }) => (
-                <div key={name}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>{name}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-tertiary)' }}>{Math.round(pct * 100)}%</span>
+            {muscleGroups.length === 0 ? (
+              <p style={{ color: 'var(--text-tertiary)', fontSize: 14, textAlign: 'center', padding: '12px 0 4px' }}>
+                Complete workouts to see your muscle distribution
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {muscleGroups.map(({ name, pct }) => (
+                  <div key={name}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>{name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-tertiary)' }}>{Math.round(pct * 100)}%</span>
+                    </div>
+                    <div style={{ height: 4, background: 'var(--surface-2)', borderRadius: 999 }}>
+                      <div style={{
+                        height: '100%', borderRadius: 999,
+                        background: 'var(--accent)',
+                        width: `${pct * 100}%`,
+                        transition: 'width 0.5s ease',
+                      }} />
+                    </div>
                   </div>
-                  <div style={{ height: 4, background: 'var(--surface-2)', borderRadius: 999 }}>
-                    <div style={{
-                      height: '100%', borderRadius: 999,
-                      background: 'var(--accent)',
-                      width: `${pct * 100}%`,
-                      transition: 'width 0.5s ease',
-                    }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 

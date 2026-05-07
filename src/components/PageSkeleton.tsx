@@ -2,9 +2,8 @@ import NavBar from './NavBar'
 
 function Block({ w = '100%', h = 18, radius = 8, style }: { w?: string | number; h?: number; radius?: number; style?: React.CSSProperties }) {
   return (
-    <div style={{
+    <div className="forge-skeleton" style={{
       width: w, height: h, borderRadius: radius,
-      background: 'var(--surface-2)',
       ...style,
     }} />
   )
@@ -26,7 +25,7 @@ export function PageSkeleton({ title, children }: { title: string; children: Rea
   return (
     <>
       <NavBar />
-      <main className="forge-main" style={{ minHeight: '100vh', paddingBottom: 120 }}>
+      <main className="forge-main page-enter" style={{ minHeight: '100vh', paddingBottom: 120 }}>
         <section style={{ padding: '20px 24px 24px' }}>
           <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>{title}</h1>
         </section>

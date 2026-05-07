@@ -5,7 +5,7 @@ export default function Loading() {
     <PageSkeleton title="Workout">
       {/* Start CTA */}
       <section style={{ padding: '0 20px 28px' }}>
-        <Block h={52} radius={26} style={{ background: 'var(--surface-2)' }} />
+        <Block h={52} radius={26} />
       </section>
 
       {/* My Routines */}

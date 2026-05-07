@@ -394,7 +394,7 @@ function MealCard({ meal, entries, onAdd, onDelete, onEdit }: MealCardProps) {
             }}>
               <ForgeIcon name="plus" size={14} color="var(--accent)" />
             </div>
-            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--accent)' }}>Add food</span>
+            <span style={{ fontSize: 14, fontWeight: 500, color: '#fff' }}>Add food</span>
           </button>
         </div>
       )}

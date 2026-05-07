@@ -28,14 +28,27 @@ export default function NavBar() {
           const active = pathname === match || pathname.startsWith(match + '/')
           return (
             <Link key={href} href={href} style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-              padding: '10px 0 14px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+              padding: '10px 0 12px',
               color: active ? 'var(--accent)' : 'var(--text-tertiary)',
               fontSize: 10, fontWeight: 600, letterSpacing: '0.02em',
               textDecoration: 'none', transition: 'color 0.15s ease',
             }}>
-              <ForgeIcon name={icon} size={24} strokeWidth={active ? 2 : 1.75} />
+              <div style={{
+                transform: active ? 'translateY(-1px) scale(1.08)' : 'translateY(0) scale(1)',
+                transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              }}>
+                <ForgeIcon name={icon} size={24} strokeWidth={active ? 2 : 1.75} />
+              </div>
               {label}
+              <div style={{
+                width: active ? 18 : 0,
+                height: 2.5,
+                borderRadius: 2,
+                background: 'var(--accent)',
+                transition: 'width 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                marginTop: 1,
+              }} />
             </Link>
           )
         })}
