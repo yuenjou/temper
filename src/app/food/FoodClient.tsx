@@ -153,7 +153,7 @@ function FoodEntryRow({ entry, onDelete }: { entry: FoodEntry; onDelete: () => v
         style={{
           transform: `translateX(${offset}px)`,
           transition: dragging ? 'none' : 'transform 0.25s cubic-bezier(0.4,0,0.2,1)',
-          background: 'var(--surface-1)',
+          background: 'var(--bg-2)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '12px 16px',
           userSelect: 'none',
@@ -679,13 +679,18 @@ export default function FoodClient({ entries: initialEntries, favourites: initia
           <div
             style={{
               position: 'absolute', bottom: 0, left: 0, right: 0,
-              background: 'var(--surface-1)',
+              background: 'rgba(12, 12, 18, 0.82)',
+              backdropFilter: 'blur(60px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(60px) saturate(200%)',
               borderRadius: '20px 20px 0 0',
+              borderTop: '1px solid rgba(255,255,255,0.18)',
+              border: '0.5px solid rgba(255,255,255,0.12)',
+              borderTopColor: 'rgba(255,255,255,0.18)',
               maxHeight: '92dvh',
               display: 'flex', flexDirection: 'column',
               transform: sheetVisible ? 'translateY(0)' : 'translateY(100%)',
               transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
-              boxShadow: '0 -4px 40px rgba(0,0,0,0.4)',
+              boxShadow: '0 -8px 60px rgba(0,0,0,0.6)',
             }}
           >
             {/* Drag handle */}

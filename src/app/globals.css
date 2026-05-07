@@ -28,11 +28,21 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html {
+  background: #050507;
+  min-height: 100%;
+}
+
+/* Fixed gradient layer — renders above the solid canvas, never scrolls.
+   Using a pseudo-element avoids background-attachment:fixed which is broken on iOS Safari. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
   background:
     radial-gradient(ellipse 80% 55% at 100% 0%, rgba(255,59,48,0.12), transparent 55%),
-    radial-gradient(ellipse 70% 55% at 0% 100%, rgba(110,61,255,0.07), transparent 55%),
-    #050507;
-  min-height: 100%;
+    radial-gradient(ellipse 70% 55% at 0% 100%, rgba(110,61,255,0.07), transparent 55%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 body {

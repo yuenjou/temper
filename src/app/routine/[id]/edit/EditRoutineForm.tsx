@@ -331,7 +331,7 @@ export default function EditRoutineForm({ routineId, initialName, initialExercis
       {/* Exercise search modal */}
       {showSearch && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }} onClick={closeSearch}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 540, background: 'var(--surface-1)', borderRadius: '24px 24px 0 0', padding: '20px 20px 40px', border: '0.5px solid var(--hairline-strong)', boxShadow: '0 -8px 40px rgba(0,0,0,0.5)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 540, background: 'rgba(12, 12, 18, 0.82)', backdropFilter: 'blur(60px) saturate(200%)', WebkitBackdropFilter: 'blur(60px) saturate(200%)', borderRadius: '24px 24px 0 0', padding: '20px 20px 40px', border: '0.5px solid rgba(255,255,255,0.12)', borderTopColor: 'rgba(255,255,255,0.18)', boxShadow: '0 -8px 60px rgba(0,0,0,0.6)' }}>
             <div style={{ width: 36, height: 4, background: 'var(--surface-3)', borderRadius: 2, margin: '0 auto 20px' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{showCustomForm ? 'New Exercise' : 'Add Exercise'}</h2>
